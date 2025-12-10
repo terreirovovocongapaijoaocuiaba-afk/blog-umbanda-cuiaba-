@@ -1,3 +1,4 @@
+
 export interface Ritual {
   id: string;
   title: string;
@@ -66,10 +67,47 @@ export interface VipContent {
   exclusive: boolean;
 }
 
-export interface Subscriber {
+// --- NEW COMMERCIAL TYPES ---
+
+export interface Transaction {
   id: string;
-  email: string;
-  plan: 'free' | 'monthly' | 'yearly';
-  status: 'active' | 'past_due' | 'canceled';
-  joinedAt: any;
+  order_id: string; // Kiwify ID
+  product_name: string;
+  customer_email: string;
+  customer_name: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'refused' | 'refunded' | 'chargedback';
+  payment_method: 'credit_card' | 'pix' | 'boleto';
+  created_at: any;
+  utm_source?: string; // Rastreamento de origem
+}
+
+export interface Subscription {
+  id: string;
+  user_email: string;
+  plan: 'monthly' | 'yearly' | 'lifetime';
+  status: 'active' | 'canceled' | 'past_due';
+  start_date: any;
+  next_payment: any;
+  kiwify_subscription_id: string;
+}
+
+export interface AnalyticsMetric {
+  id: string;
+  event_type: 'page_view' | 'click_cta' | 'attempt_premium' | 'conversion';
+  page: string;
+  user_status: 'free' | 'premium';
+  timestamp: any;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'payment' | 'system' | 'insight' | 'offer';
+  title: string;
+  message: string;
+  read: boolean;
+  timestamp: number;
+  actionLink?: string;
+  actionLabel?: string;
+  priority?: 'high' | 'normal' | 'low';
 }

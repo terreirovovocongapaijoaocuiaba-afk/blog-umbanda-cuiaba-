@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, MessageSquare, LogOut, Flame, Settings, BarChart } from 'lucide-react';
-import { SITE_NAME } from '../../constants';
+import { LayoutDashboard, FileText, MessageSquare, LogOut, Flame, Settings, BarChart, DollarSign, Activity, Radio, Bell } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();
@@ -23,48 +23,41 @@ const AdminLayout: React.FC = () => {
           <span className="font-serif font-bold text-stone-900 dark:text-white tracking-wider">PAINEL AXÉ</span>
         </div>
 
-        <nav className="flex-1 py-6 px-4 space-y-2">
-          <Link 
-            to="/admin/dashboard" 
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive('dashboard') ? 'bg-umbanda-red/10 dark:bg-umbanda-red/20 text-umbanda-redBright' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-white'}`}
-          >
-            <LayoutDashboard size={20} />
-            <span className="font-medium">Visão Geral</span>
+        <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+          
+          <div className="px-4 py-2 text-[10px] font-bold uppercase text-stone-400">Gestão</div>
+          <Link to="/admin/dashboard" className={`nav-item ${isActive('dashboard') ? 'active' : ''}`}>
+            <LayoutDashboard size={18} /> <span>Visão Geral</span>
+          </Link>
+          <Link to="/admin/vendas" className={`nav-item ${isActive('vendas') ? 'active' : ''}`}>
+            <DollarSign size={18} /> <span>Vendas & Kiwify</span>
+          </Link>
+          <Link to="/admin/analytics" className={`nav-item ${isActive('analytics') ? 'active' : ''}`}>
+            <Activity size={18} /> <span>Analytics & Funil</span>
+          </Link>
+          <Link to="/admin/notificacoes" className={`nav-item ${isActive('notificacoes') ? 'active' : ''}`}>
+            <Bell size={18} /> <span>Engajamento Push</span>
           </Link>
 
-          <Link 
-            to="/admin/conteudo" 
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive('conteudo') ? 'bg-umbanda-red/10 dark:bg-umbanda-red/20 text-umbanda-redBright' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-white'}`}
-          >
-            <FileText size={20} />
-            <span className="font-medium">Conteúdo</span>
+          <div className="px-4 py-2 mt-4 text-[10px] font-bold uppercase text-stone-400">Conteúdo</div>
+          <Link to="/admin/conteudo" className={`nav-item ${isActive('conteudo') ? 'active' : ''}`}>
+            <FileText size={18} /> <span>CMS (Blog/Rituais)</span>
+          </Link>
+          <Link to="/admin/mensagens" className={`nav-item ${isActive('mensagens') ? 'active' : ''}`}>
+            <MessageSquare size={18} /> <span>Mensagens</span>
+          </Link>
+          <Link to="/admin/seo" className={`nav-item ${isActive('seo') ? 'active' : ''}`}>
+            <BarChart size={18} /> <span>SEO Master</span>
           </Link>
 
-          <Link 
-            to="/admin/mensagens" 
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive('mensagens') ? 'bg-umbanda-red/10 dark:bg-umbanda-red/20 text-umbanda-redBright' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-white'}`}
-          >
-            <MessageSquare size={20} />
-            <span className="font-medium">Mensagens</span>
+          <div className="px-4 py-2 mt-4 text-[10px] font-bold uppercase text-stone-400">Sistema</div>
+          <Link to="/admin/webhook-test" className={`nav-item ${isActive('webhook') ? 'active' : ''}`}>
+            <Radio size={18} /> <span>Simulador Webhook</span>
+          </Link>
+          <Link to="/admin/config" className={`nav-item ${isActive('config') ? 'active' : ''}`}>
+            <Settings size={18} /> <span>Configurações</span>
           </Link>
 
-          <Link 
-            to="/admin/seo" 
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive('seo') ? 'bg-umbanda-red/10 dark:bg-umbanda-red/20 text-umbanda-redBright' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-white'}`}
-          >
-            <BarChart size={20} />
-            <span className="font-medium">SEO & Performance</span>
-          </Link>
-
-          <div className="pt-4 mt-4 border-t border-stone-200 dark:border-stone-800">
-             <Link 
-              to="/admin/config" 
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-white transition-colors"
-            >
-              <Settings size={20} />
-              <span className="font-medium">Configurações</span>
-            </Link>
-          </div>
         </nav>
 
         <div className="p-4 border-t border-stone-200 dark:border-stone-800">
@@ -80,16 +73,48 @@ const AdminLayout: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-stone-50 dark:bg-stone-950 relative transition-colors duration-300">
-        {/* Mobile Header Placeholder */}
         <header className="md:hidden bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 p-4 flex justify-between items-center sticky top-0 z-20">
             <span className="font-serif font-bold text-stone-900 dark:text-white">PAINEL AXÉ</span>
             <button onClick={handleLogout} className="text-stone-500 dark:text-stone-400"><LogOut size={20}/></button>
         </header>
 
-        <div className="p-6 md:p-10 max-w-7xl mx-auto">
+        <div className="p-6 md:p-10 max-w-[1600px] mx-auto">
           <Outlet />
         </div>
       </main>
+
+      <style>{`
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            color: #78716c;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .dark .nav-item { color: #a8a29e; }
+        
+        .nav-item:hover {
+            background: rgba(0,0,0,0.05);
+            color: #1c1917;
+        }
+        .dark .nav-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+        }
+        .dark .nav-item.active {
+            background: rgba(220, 38, 38, 0.2);
+            color: #fca5a5;
+        }
+      `}</style>
     </div>
   );
 };

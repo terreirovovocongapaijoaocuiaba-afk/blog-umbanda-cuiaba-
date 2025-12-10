@@ -1,191 +1,188 @@
+
 import React, { useState, useEffect } from 'react';
-import { Users, BookOpen, MessageCircle, Crown, Loader2, TrendingUp, DollarSign, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { DollarSign, Users, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Crown, CreditCard, Activity } from 'lucide-react';
 import { db } from '../../lib/firebase';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
 
 const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState({
-    messages: 0,
-    articles: 0,
-    vipMembers: 124, // Simulado para SaaS demo
-    monthlyRevenue: 3707.60 // Simulado: 124 * 29.90
-  });
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({
+      totalSales: 0,
+      mrr: 0,
+      activeSubs: 0,
+      churnRate: 2.4,
+      ticketAverage: 0,
+      todaySales: 0
+  });
+  const [recentSales, setRecentSales] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const msgSnap = await getDocs(collection(db, 'messages'));
-        const artSnap = await getDocs(collection(db, 'articles'));
-        const ritSnap = await getDocs(collection(db, 'rituals'));
-        const vipSnap = await getDocs(collection(db, 'vip_content'));
+    const fetchData = async () => {
+        try {
+            // Simulation of fetching financial data from Firestore 'transactions' collection
+            const salesSnap = await getDocs(query(collection(db, 'transactions'), orderBy('created_at', 'desc'), limit(10)));
+            const allSalesSnap = await getDocs(collection(db, 'transactions'));
+            const subsSnap = await getDocs(collection(db, 'subscriptions'));
 
-        setStats(prev => ({
-          ...prev,
-          messages: msgSnap.size,
-          articles: artSnap.size + ritSnap.size + vipSnap.size,
-        }));
+            const total = allSalesSnap.docs.reduce((acc, curr) => acc + (curr.data().amount || 0), 0);
+            const activeCount = subsSnap.docs.filter(d => d.data().status === 'active').length;
+            
+            // Calculo MRR (Simulado: Assinantes * Preço Médio R$29,90)
+            const simulatedMRR = activeCount * 29.90;
 
-        // Activity Feed
-        const recentMsgs = await getDocs(query(collection(db, 'messages'), orderBy('createdAt', 'desc'), limit(5)));
-        
-        const activities = recentMsgs.docs.map(d => ({
-            id: d.id,
-            label: 'Nova Mensagem',
-            title: d.data().subject,
-            user: d.data().name,
-            time: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date(),
-            type: 'msg'
-        }));
+            setMetrics({
+                totalSales: total,
+                mrr: simulatedMRR,
+                activeSubs: activeCount,
+                churnRate: 2.4, // Hardcoded simulation for demo
+                ticketAverage: total / (allSalesSnap.size || 1),
+                todaySales: 4 // Mock
+            });
 
-        setRecentActivity(activities);
-
-      } catch (error) {
-        console.error("Erro dashboard:", error);
-      } finally {
-        setLoading(false);
-      }
+            setRecentSales(salesSnap.docs.map(d => ({id: d.id, ...d.data()})));
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
     };
-
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-  if (loading) return <div className="flex justify-center h-96 items-center"><Loader2 className="animate-spin text-umbanda-gold"/></div>;
+  if (loading) return <div className="text-stone-500">Carregando inteligência...</div>;
 
   return (
     <div className="animate-fadeIn space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-white">Dashboard do Templo</h1>
-          <p className="text-stone-400 mt-1">Métricas de crescimento e saúde do negócio.</p>
+           <h1 className="text-3xl font-serif font-bold text-stone-900 dark:text-white">Painel Executivo</h1>
+           <p className="text-stone-500">Visão financeira e saúde do ecossistema.</p>
         </div>
         <div className="flex gap-2">
-            <span className="bg-green-900/30 text-green-400 border border-green-800 px-3 py-1 rounded text-xs font-bold flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Sistema Operacional
+            <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded text-xs font-bold border border-green-200 dark:border-green-800 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> API Kiwify Conectada
             </span>
         </div>
       </div>
 
-      {/* KPI Cards (SaaS Style) */}
+      {/* --- MRR & MAIN KPI --- */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <KPICard 
-          title="Receita Mensal (MRR)" 
-          value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR')}`} 
-          trend="+12%" 
-          trendUp={true} 
-          icon={<DollarSign className="text-green-400"/>} 
-        />
-        <KPICard 
-          title="Membros VIP Ativos" 
-          value={stats.vipMembers.toString()} 
-          trend="+5 novos" 
-          trendUp={true} 
-          icon={<Crown className="text-purple-400"/>} 
-        />
-        <KPICard 
-          title="Conteúdos Totais" 
-          value={stats.articles.toString()} 
-          trend="+3 essa semana" 
-          trendUp={true} 
-          icon={<BookOpen className="text-umbanda-gold"/>} 
-        />
-        <KPICard 
-          title="Mensagens / Leads" 
-          value={stats.messages.toString()} 
-          trend="-2% vs ontem" 
-          trendUp={false} 
-          icon={<MessageCircle className="text-blue-400"/>} 
-        />
+          <KPICard 
+             title="Receita Mensal (MRR)" 
+             value={`R$ ${metrics.mrr.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`}
+             trend="+12% vs mês anterior"
+             trendUp={true}
+             icon={<DollarSign className="text-green-500"/>}
+          />
+          <KPICard 
+             title="Assinantes Ativos" 
+             value={metrics.activeSubs.toString()}
+             trend="+5 hoje"
+             trendUp={true}
+             icon={<Crown className="text-purple-500"/>}
+          />
+          <KPICard 
+             title="Ticket Médio" 
+             value={`R$ ${metrics.ticketAverage.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`}
+             trend="Estável"
+             trendUp={true}
+             icon={<CreditCard className="text-blue-500"/>}
+          />
+          <KPICard 
+             title="Churn Rate (Cancelamento)" 
+             value={`${metrics.churnRate}%`}
+             trend="-0.5% (Melhorou)"
+             trendUp={true} // Good because it went down
+             icon={<Activity className="text-orange-500"/>}
+          />
       </div>
 
-      {/* Charts Section (Custom SVG for Performance) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Revenue Chart */}
-          <div className="lg:col-span-2 bg-stone-900 border border-stone-800 rounded-xl p-6">
+          {/* SALES CHART AREA */}
+          <div className="lg:col-span-2 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-6">
               <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">Crescimento de Assinantes</h3>
-                    <p className="text-xs text-stone-500">Últimos 6 meses</p>
-                  </div>
-                  <button className="text-xs bg-stone-800 hover:bg-stone-700 text-white px-3 py-1 rounded">Ver Relatório</button>
+                  <h3 className="font-bold text-stone-900 dark:text-white">Fluxo de Caixa (30 dias)</h3>
+                  <select className="bg-stone-100 dark:bg-stone-800 border-none rounded text-xs p-1">
+                      <option>Últimos 30 dias</option>
+                      <option>Este Ano</option>
+                  </select>
               </div>
-              
-              {/* Mock Chart SVG */}
-              <div className="h-64 w-full relative">
-                  <svg viewBox="0 0 100 40" className="w-full h-full drop-shadow-xl" preserveAspectRatio="none">
-                      {/* Grid Lines */}
-                      <line x1="0" y1="30" x2="100" y2="30" stroke="#333" strokeWidth="0.1" />
-                      <line x1="0" y1="20" x2="100" y2="20" stroke="#333" strokeWidth="0.1" />
-                      <line x1="0" y1="10" x2="100" y2="10" stroke="#333" strokeWidth="0.1" />
-                      
-                      {/* Path Gradient Definition */}
-                      <defs>
-                        <linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="0%" stopColor="#d97706" stopOpacity="0.5" />
-                          <stop offset="100%" stopColor="#d97706" stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      
-                      {/* Area */}
-                      <path d="M0,35 Q10,32 20,28 T40,25 T60,15 T80,10 T100,5 V40 H0 Z" fill="url(#gradient)" />
-                      {/* Line */}
-                      <path d="M0,35 Q10,32 20,28 T40,25 T60,15 T80,10 T100,5" fill="none" stroke="#d97706" strokeWidth="0.8" />
-                      
-                      {/* Points */}
-                      <circle cx="0" cy="35" r="0.8" fill="white" />
-                      <circle cx="20" cy="28" r="0.8" fill="white" />
-                      <circle cx="40" cy="25" r="0.8" fill="white" />
-                      <circle cx="60" cy="15" r="0.8" fill="white" />
-                      <circle cx="80" cy="10" r="0.8" fill="white" />
-                      <circle cx="100" cy="5" r="0.8" fill="white" />
-                  </svg>
-                  <div className="flex justify-between text-xs text-stone-500 mt-2 px-2">
-                      <span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span>
+              <div className="h-64 w-full relative flex items-end justify-between px-2 gap-2">
+                   {/* Simulated Bars */}
+                   {[40, 60, 45, 80, 55, 70, 90, 65, 85, 100, 75, 95].map((h, i) => (
+                       <div key={i} className="w-full bg-umbanda-gold/20 hover:bg-umbanda-gold/40 rounded-t transition-all relative group" style={{height: `${h}%`}}>
+                           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                               R$ {(h * 150).toFixed(0)}
+                           </div>
+                       </div>
+                   ))}
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-stone-500 uppercase font-bold">
+                  <span>Semana 1</span><span>Semana 2</span><span>Semana 3</span><span>Semana 4</span>
+              </div>
+          </div>
+
+          {/* SMART INSIGHTS */}
+          <div className="space-y-6">
+              <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-xl p-6 text-white border border-indigo-700 shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-20"><Activity size={64}/></div>
+                  <h3 className="font-bold text-lg mb-2 relative z-10">Diagnóstico Inteligente</h3>
+                  <ul className="space-y-3 relative z-10 text-sm">
+                      <li className="flex gap-2 items-start">
+                          <ArrowUpRight className="text-green-400 flex-shrink-0" size={16}/>
+                          <span>Conversão da página <strong>Oráculo</strong> subiu 15% após mudança de CTA.</span>
+                      </li>
+                      <li className="flex gap-2 items-start">
+                          <AlertTriangle className="text-yellow-400 flex-shrink-0" size={16}/>
+                          <span><strong>12 usuários</strong> tentaram acessar "Banho de Ervas" hoje e pararam no checkout. Sugestão: Enviar cupom.</span>
+                      </li>
+                      <li className="flex gap-2 items-start">
+                          <Users className="text-blue-400 flex-shrink-0" size={16}/>
+                          <span>Horário de pico detectado: <strong>19h às 21h</strong>. Ideal para lançar ofertas.</span>
+                      </li>
+                  </ul>
+              </div>
+
+              {/* RECENT SALES */}
+              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-6">
+                  <h3 className="font-bold text-stone-900 dark:text-white mb-4">Últimas Transações</h3>
+                  <div className="space-y-4">
+                      {recentSales.length === 0 ? <p className="text-xs text-stone-500">Nenhuma venda registrada.</p> : recentSales.map((sale) => (
+                          <div key={sale.id} className="flex justify-between items-center border-b border-stone-100 dark:border-stone-800 pb-2 last:border-0 last:pb-0">
+                              <div>
+                                  <p className="font-bold text-stone-800 dark:text-stone-200 text-sm">{sale.customer_name}</p>
+                                  <p className="text-xs text-stone-500">{sale.product_name}</p>
+                              </div>
+                              <div className="text-right">
+                                  <p className="font-bold text-green-600 text-sm">+ R$ {sale.amount}</p>
+                                  <p className="text-[10px] text-stone-400 uppercase">{sale.payment_method}</p>
+                              </div>
+                          </div>
+                      ))}
                   </div>
               </div>
           </div>
 
-          {/* Activity Feed */}
-          <div className="bg-stone-900 border border-stone-800 rounded-xl p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-white mb-4">Atividade Recente</h3>
-              <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-2">
-                  {recentActivity.length === 0 ? (
-                      <p className="text-stone-500 text-sm">Sem atividades recentes.</p>
-                  ) : (
-                      recentActivity.map((act, i) => (
-                          <div key={i} className="flex gap-3 items-start relative pb-6 border-l border-stone-800 last:pb-0 last:border-0">
-                              <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-stone-700 border-2 border-stone-900"></div>
-                              <div className="mt-[-4px]">
-                                  <p className="text-xs text-stone-500 mb-0.5">{act.time.toLocaleDateString('pt-BR')}</p>
-                                  <p className="text-white text-sm font-medium">{act.label}</p>
-                                  <p className="text-stone-400 text-xs mt-1">"{act.title}" por <span className="text-umbanda-gold">{act.user}</span></p>
-                              </div>
-                          </div>
-                      ))
-                  )}
-              </div>
-          </div>
       </div>
     </div>
   );
 };
 
 const KPICard = ({ title, value, trend, trendUp, icon }: any) => (
-  <div className="bg-stone-900 border border-stone-800 p-6 rounded-xl relative overflow-hidden group hover:border-stone-700 transition-all">
+  <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-6 rounded-xl relative overflow-hidden group hover:border-stone-300 dark:hover:border-stone-700 transition-all shadow-sm">
       <div className="flex justify-between items-start mb-4">
-          <div className="p-2 bg-stone-950 rounded-lg border border-stone-800 group-hover:scale-110 transition-transform">
+          <div className="p-2 bg-stone-100 dark:bg-stone-950 rounded-lg group-hover:scale-110 transition-transform">
               {icon}
           </div>
-          <div className={`flex items-center text-xs font-bold ${trendUp ? 'text-green-500' : 'text-red-500'} bg-stone-950 px-2 py-1 rounded-full`}>
+          <div className={`flex items-center text-xs font-bold ${trendUp ? 'text-green-500 bg-green-50 dark:bg-green-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20'} px-2 py-1 rounded-full`}>
               {trendUp ? <ArrowUpRight size={12} className="mr-1"/> : <ArrowDownRight size={12} className="mr-1"/>}
               {trend}
           </div>
       </div>
       <h3 className="text-stone-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-white font-serif">{value}</p>
+      <p className="text-2xl font-bold text-stone-900 dark:text-white font-serif">{value}</p>
   </div>
 );
 

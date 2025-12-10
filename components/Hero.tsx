@@ -9,13 +9,16 @@ const Hero: React.FC = () => {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://images.unsplash.com/photo-1600609842388-3e4722839569?q=80&w=1920&auto=format&fit=crop" 
+          src="https://images.unsplash.com/photo-1519681393798-38e43269d877?q=80&w=1920&auto=format&fit=crop" 
           alt="Altar de Umbanda Iluminado" 
-          className="w-full h-full object-cover animate-pulse-slow"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/90 via-stone-900/70 to-stone-950"></div>
-        {/* Mystic Overlay */}
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+        {/* Dark Overlay for Text Readability - Adjusted to be lighter so image is visible */}
+        <div className="absolute inset-0 bg-black/50"></div>
+        {/* Gradient at bottom for smooth transition to content */}
+        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/60 via-transparent to-stone-950"></div>
+        {/* Mystic Overlay Pattern */}
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
       </div>
 
       {/* Content */}
@@ -38,7 +41,7 @@ const Hero: React.FC = () => {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-stone-300 text-lg md:text-xl max-w-2xl mx-auto mb-8 font-light leading-relaxed animate-slideUp animation-delay-200">
+        <p className="text-stone-100 text-lg md:text-xl max-w-2xl mx-auto mb-8 font-light leading-relaxed animate-slideUp animation-delay-200 drop-shadow-md">
           Obtenha clareza, proteção e direção espiritual agora mesmo. 
           Sem sair de casa, com o respeito e fundamento que sua fé merece.
         </p>
@@ -57,7 +60,7 @@ const Hero: React.FC = () => {
                  <div className="flex text-umbanda-gold">
                      {[1,2,3,4,5].map(i => <Star key={i} size={14} fill="currentColor"/>)}
                  </div>
-                 <span className="text-xs text-stone-400 font-medium">4.9/5 de satisfação</span>
+                 <span className="text-xs text-stone-200 font-medium drop-shadow-md">4.9/5 de satisfação</span>
              </div>
         </div>
 
@@ -74,7 +77,7 @@ const Hero: React.FC = () => {
           </Link>
           <Link 
             to="/oraculo" 
-            className="px-8 py-4 bg-transparent border border-white/20 hover:border-umbanda-gold text-stone-300 hover:text-white font-semibold rounded-lg hover:bg-white/5 transition-all backdrop-blur-sm w-full md:w-auto text-center flex items-center justify-center gap-2"
+            className="px-8 py-4 bg-black/40 border border-white/20 hover:border-umbanda-gold text-stone-200 hover:text-white font-semibold rounded-lg hover:bg-black/60 transition-all backdrop-blur-sm w-full md:w-auto text-center flex items-center justify-center gap-2"
           >
             <Sparkles size={18} /> Testar Oráculo Grátis
           </Link>

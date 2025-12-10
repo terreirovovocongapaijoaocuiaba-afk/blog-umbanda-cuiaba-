@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock, Sun, Moon, Sparkles, ShoppingBag } from 'lucide-react';
 import { SITE_NAME } from '../constants';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { NotificationBell } from './NotificationCenter';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -116,6 +118,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               {theme === 'dark' ? <Sun size={20} className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'} /> : <Moon size={20} className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'} />}
             </button>
 
+            {/* NOTIFICATION BELL ADDED HERE */}
+            <div className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'}>
+                <NotificationBell />
+            </div>
+
             <Link 
               to="/vip" 
               className="px-6 py-2 bg-gradient-to-r from-umbanda-red to-red-800 text-white font-bold rounded-full border border-umbanda-gold/30 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all transform hover:-translate-y-0.5 text-sm"
@@ -126,6 +133,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
+            <div className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'}>
+                <NotificationBell />
+            </div>
             <button 
                 onClick={toggleTheme} 
                 className={isSolidNav ? "text-umbanda-gold hover:text-stone-900 dark:hover:text-white" : "text-umbanda-gold hover:text-white"}
