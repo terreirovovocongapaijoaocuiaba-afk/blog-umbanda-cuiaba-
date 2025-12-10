@@ -92,6 +92,7 @@ const ArticleDetail: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [userRating, setUserRating] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isSubscriber, setIsSubscriber] = useState(false);
 
   // Comment Form
   const [commentName, setCommentName] = useState('');
@@ -99,6 +100,7 @@ const ArticleDetail: React.FC = () => {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   useEffect(() => {
+    setIsSubscriber(isUserPremium());
     const fetchArticleAndRelated = async () => {
       if (!id) return;
       setLoading(true);
@@ -343,7 +345,7 @@ const ArticleDetail: React.FC = () => {
                         </button>
                     </div>
 
-                    {!isUserPremium() && (
+                    {!isSubscriber && (
                         <div className="bg-gradient-to-br from-stone-900 to-black p-6 rounded-xl border border-stone-800 text-center relative overflow-hidden shadow-xl">
                             <div className="absolute top-0 right-0 w-20 h-20 bg-umbanda-red/20 blur-2xl rounded-full"></div>
                             <Crown size={32} className="text-umbanda-gold mx-auto mb-3"/>
@@ -379,7 +381,7 @@ const ArticleDetail: React.FC = () => {
                     </article>
 
                     {/* CTA FINAL */}
-                    {!isUserPremium() && (
+                    {!isSubscriber && (
                         <div className="mt-16 mb-12 p-10 rounded-2xl bg-gradient-to-r from-umbanda-red to-red-900 text-white text-center shadow-2xl shadow-red-900/20 relative overflow-hidden">
                             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-20"></div>
                             <div className="relative z-10">

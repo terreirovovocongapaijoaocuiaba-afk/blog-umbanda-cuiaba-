@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Loader2, Sparkles, AlertCircle, Eye, Crown, Wand2, Lightbulb, RefreshCw, Bold, Italic, List, Link as LinkIcon, Image, CheckCircle, Search, ShoppingBag, DollarSign, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Loader2, Sparkles, AlertCircle, Eye, Crown, Wand2, Lightbulb, RefreshCw, Bold, Italic, List, Link as LinkIcon, Image, CheckCircle, Search, ShoppingBag, DollarSign, Tag, Package } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Article, Ritual, Entity, VipContent, Product } from '../../types';
@@ -98,6 +98,27 @@ const AdminContent: React.FC = () => {
     } catch (e) { alert("Erro ao salvar: " + e); } finally { setSaving(false); }
   };
 
+  // --- SEEDER LOGIC ---
+  const seedDefaultProducts = async () => {
+      setLoading(true);
+      const defaults = [
+          { title: 'Clube VIP (Assinatura Mensal)', slug: 'vip_monthly', price: 29.90, description: 'Acesso total à área de membros, rituais exclusivos e grupo de WhatsApp.', checkoutUrl: '', isActive: true },
+          { title: 'Oráculo Completo', slug: 'oracle_reading', price: 9.90, description: 'Leitura detalhada de 3 cartas com conselho do guia.', checkoutUrl: '', isActive: true },
+          { title: 'Interpretação de Sonhos', slug: 'dream_analysis', price: 9.90, description: 'Significado espiritual, aviso e números da sorte.', checkoutUrl: '', isActive: true },
+          { title: 'Receita de Banho Personalizado', slug: 'herbal_prescription', price: 6.90, description: 'Banho de ervas específico para o seu momento.', checkoutUrl: '', isActive: true },
+          { title: 'Mapa de Orixá (Numerologia)', slug: 'orixa_map', price: 9.90, description: 'Cálculo dos Odus para descobrir Pai e Mãe de cabeça.', checkoutUrl: '', isActive: true },
+          { title: 'Leitura de Vela (Ceromancia)', slug: 'candle_reading', price: 3.90, description: 'Interpretação da chama da sua vela.', checkoutUrl: '', isActive: true },
+      ];
+
+      try {
+          const promises = defaults.map(p => addDoc(collection(db, 'products'), { ...p, createdAt: serverTimestamp() }));
+          await Promise.all(promises);
+          alert("Produtos padrão criados! Agora adicione os links de checkout.");
+          fetchData();
+      } catch (e) { console.error(e); alert("Erro ao criar produtos."); } 
+      finally { setLoading(false); }
+  };
+
   // --- SEO LOGIC ---
   const calculateSeo = (data: any) => {
       let score = 100;
@@ -174,6 +195,21 @@ const AdminContent: React.FC = () => {
       {/* LIST VIEW */}
       <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden flex-1">
         {loading ? <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-umbanda-gold"/></div> : (
+          items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-20 text-center">
+                  <div className="w-20 h-20 bg-stone-800 rounded-full flex items-center justify-center mb-4">
+                      <Package size={32} className="text-stone-500"/>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Nenhum item encontrado</h3>
+                  <p className="text-stone-500 mb-6">Esta coleção está vazia.</p>
+                  
+                  {activeTab === 'products' && (
+                      <button onClick={seedDefaultProducts} className="bg-green-700 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-lg">
+                          <Sparkles size={18}/> Gerar Produtos Padrão
+                      </button>
+                  )}
+              </div>
+          ) : (
           <table className="w-full text-left">
             <thead className="bg-stone-950 text-stone-500 text-xs uppercase">
               <tr>
@@ -216,6 +252,7 @@ const AdminContent: React.FC = () => {
               ))}
             </tbody>
           </table>
+          )
         )}
       </div>
 

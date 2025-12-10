@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MousePointerClick, MessageSquareHeart, Sparkles, Check, X, TrendingUp, Shield, Zap, Lock, Star } from 'lucide-react';
+import { MousePointerClick, MessageSquareHeart, Sparkles, Check, X, TrendingUp, Shield, Zap, Lock, Star, UserCheck } from 'lucide-react';
+import { isUserPremium } from '../lib/usageUtils';
 
 // --- COMO FUNCIONA ---
 export const HowItWorks: React.FC = () => (
@@ -58,7 +59,14 @@ const Step = ({ num, icon, title, desc }: any) => (
 
 
 // --- COMPARATIVO ---
-export const PricingComparison: React.FC = () => (
+export const PricingComparison: React.FC = () => {
+  const [isVip, setIsVip] = useState(false);
+
+  useEffect(() => {
+    setIsVip(isUserPremium());
+  }, []);
+
+  return (
   <section className="py-20 bg-stone-50 dark:bg-stone-900/50">
     <div className="container mx-auto px-6">
        <div className="text-center mb-12">
@@ -68,7 +76,7 @@ export const PricingComparison: React.FC = () => (
 
        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Free Card */}
-          <div className="bg-white dark:bg-stone-950 p-8 rounded-2xl border border-stone-200 dark:border-stone-800 flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-opacity">
+          <div className={`bg-white dark:bg-stone-950 p-8 rounded-2xl border border-stone-200 dark:border-stone-800 flex flex-col items-center text-center transition-opacity ${isVip ? 'opacity-50 grayscale' : 'opacity-100'}`}>
               <h3 className="text-xl font-bold text-stone-500 uppercase tracking-widest mb-4">Visitante</h3>
               <div className="text-4xl font-serif font-bold text-stone-900 dark:text-white mb-2">Grátis</div>
               <p className="text-sm text-stone-500 mb-8">Para quem está conhecendo.</p>
@@ -79,17 +87,23 @@ export const PricingComparison: React.FC = () => (
                   <li className="flex items-center justify-center gap-2 text-stone-400/50 line-through"><X size={16}/> Análises Profundas</li>
                   <li className="flex items-center justify-center gap-2 text-stone-400/50 line-through"><X size={16}/> Rituais Completos</li>
               </ul>
-              <Link to="/oraculo" className="w-full py-3 border border-stone-300 dark:border-stone-700 rounded-lg font-bold text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-                  Testar Grátis
-              </Link>
+              {!isVip ? (
+                  <Link to="/oraculo" className="w-full py-3 border border-stone-300 dark:border-stone-700 rounded-lg font-bold text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
+                      Testar Grátis
+                  </Link>
+              ) : (
+                  <button disabled className="w-full py-3 border border-stone-300 dark:border-stone-800 rounded-lg font-bold text-stone-400 cursor-not-allowed">
+                      Plano Básico
+                  </button>
+              )}
           </div>
 
           {/* Premium Card */}
-          <div className="bg-white dark:bg-stone-900 p-8 rounded-2xl border-2 border-umbanda-gold relative shadow-2xl transform md:-translate-y-4 flex flex-col items-center text-center">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-umbanda-gold text-white text-xs font-bold px-4 py-1 rounded-full uppercase shadow-lg">
-                  Recomendado
+          <div className={`bg-white dark:bg-stone-900 p-8 rounded-2xl border-2 ${isVip ? 'border-green-500' : 'border-umbanda-gold'} relative shadow-2xl transform md:-translate-y-4 flex flex-col items-center text-center`}>
+              <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 ${isVip ? 'bg-green-600' : 'bg-umbanda-gold'} text-white text-xs font-bold px-4 py-1 rounded-full uppercase shadow-lg`}>
+                  {isVip ? 'Seu Plano Atual' : 'Recomendado'}
               </div>
-              <h3 className="text-xl font-bold text-umbanda-gold uppercase tracking-widest mb-4">Membro VIP</h3>
+              <h3 className={`text-xl font-bold ${isVip ? 'text-green-500' : 'text-umbanda-gold'} uppercase tracking-widest mb-4`}>Membro VIP</h3>
               <div className="text-4xl font-serif font-bold text-stone-900 dark:text-white mb-2">R$ 29,90</div>
               <p className="text-sm text-stone-500 mb-8">Acesso ilimitado e profundo.</p>
 
@@ -99,14 +113,22 @@ export const PricingComparison: React.FC = () => (
                   <li className="flex items-center justify-center gap-2"><Check size={16} className="text-green-500"/> Rituais Exclusivos</li>
                   <li className="flex items-center justify-center gap-2"><Check size={16} className="text-green-500"/> Suporte Prioritário</li>
               </ul>
-              <Link to="/vip" className="w-full py-4 bg-gradient-to-r from-umbanda-gold to-yellow-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center gap-2">
-                  <Sparkles size={18}/> Desbloquear Tudo
-              </Link>
+              
+              {isVip ? (
+                  <Link to="/vip" className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2">
+                      <UserCheck size={18}/> Acessar Área de Membros
+                  </Link>
+              ) : (
+                  <Link to="/vip" className="w-full py-4 bg-gradient-to-r from-umbanda-gold to-yellow-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center gap-2">
+                      <Sparkles size={18}/> Desbloquear Tudo
+                  </Link>
+              )}
           </div>
        </div>
     </div>
   </section>
-);
+  );
+};
 
 // --- RESULTS STATS ---
 export const StatsSection: React.FC = () => (
@@ -134,7 +156,11 @@ export const StatsSection: React.FC = () => (
 );
 
 // --- USP (Unique Selling Proposition) ---
-export const UniqueSellingPoints: React.FC = () => (
+export const UniqueSellingPoints: React.FC = () => {
+    const [isVip, setIsVip] = useState(false);
+    useEffect(() => { setIsVip(isUserPremium()); }, []);
+
+    return (
     <section className="py-20 bg-white dark:bg-stone-950">
         <div className="container mx-auto px-6">
             <div className="flex flex-col md:flex-row gap-12 items-center">
@@ -159,8 +185,8 @@ export const UniqueSellingPoints: React.FC = () => (
                             desc="Não é aleatório. Todo o sistema foi treinado com base na teologia de Umbanda."
                         />
                     </div>
-                    <Link to="/vip" className="inline-block px-8 py-4 bg-stone-900 dark:bg-stone-800 text-white font-bold rounded-lg hover:bg-stone-800 dark:hover:bg-stone-700 transition-colors">
-                        Junte-se a Nós
+                    <Link to={isVip ? "/vip" : "/vip"} className={`inline-block px-8 py-4 ${isVip ? 'bg-green-600 hover:bg-green-700' : 'bg-stone-900 dark:bg-stone-800 hover:bg-stone-800'} text-white font-bold rounded-lg transition-colors`}>
+                        {isVip ? 'Ir para Área VIP' : 'Junte-se a Nós'}
                     </Link>
                 </div>
                 <div className="flex-1 relative">
@@ -174,7 +200,8 @@ export const UniqueSellingPoints: React.FC = () => (
             </div>
         </div>
     </section>
-);
+    );
+};
 
 const USPItem = ({icon, title, desc}: any) => (
     <div className="flex gap-4">
@@ -207,7 +234,13 @@ export const EmotionalBlock: React.FC = () => (
 );
 
 // --- HIGH CONVERSION FOOTER CTA ---
-export const FooterCTA: React.FC = () => (
+export const FooterCTA: React.FC = () => {
+    const [isVip, setIsVip] = useState(false);
+    useEffect(() => { setIsVip(isUserPremium()); }, []);
+
+    if (isVip) return null; // Don't show aggressive sales CTA if already VIP
+
+    return (
     <section className="py-20 bg-gradient-to-r from-umbanda-red to-red-900 text-white text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-30"></div>
         <div className="container mx-auto px-6 relative z-10">
@@ -231,4 +264,5 @@ export const FooterCTA: React.FC = () => (
             </p>
         </div>
     </section>
-);
+    );
+};
