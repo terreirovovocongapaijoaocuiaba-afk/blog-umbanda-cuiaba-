@@ -69,6 +69,17 @@ export interface VipContent {
 
 // --- NEW COMMERCIAL TYPES ---
 
+export interface Product {
+  id: string;
+  title: string; // Nome comercial (ex: Interpretação de Sonhos)
+  slug: string; // ID interno (ex: dream_analysis)
+  description: string;
+  price: number;
+  checkoutUrl: string; // Link Kiwify
+  imageUrl?: string;
+  isActive: boolean;
+}
+
 export interface Transaction {
   id: string;
   order_id: string; // Kiwify ID

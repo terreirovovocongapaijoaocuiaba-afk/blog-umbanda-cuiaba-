@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Loader2, Sparkles, AlertCircle, Eye, Crown, Wand2, Lightbulb, RefreshCw, Bold, Italic, List, Link as LinkIcon, Image, CheckCircle, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Loader2, Sparkles, AlertCircle, Eye, Crown, Wand2, Lightbulb, RefreshCw, Bold, Italic, List, Link as LinkIcon, Image, CheckCircle, Search, ShoppingBag, DollarSign, Tag } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { Article, Ritual, Entity, VipContent } from '../../types';
+import { Article, Ritual, Entity, VipContent, Product } from '../../types';
 import { GoogleGenAI } from "@google/genai";
 
 const AdminContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'articles' | 'rituals' | 'entities' | 'vip'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'rituals' | 'entities' | 'vip' | 'products'>('articles');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   
@@ -23,7 +24,10 @@ const AdminContent: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const collName = activeTab === 'vip' ? 'vip_content' : activeTab;
+    let collName = activeTab as string;
+    if (activeTab === 'vip') collName = 'vip_content';
+    // products collection name is 'products'
+    
     try {
       const snap = await getDocs(collection(db, collName));
       setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -46,7 +50,10 @@ const AdminContent: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Excluir item permanentemente?")) return;
     try {
-      await deleteDoc(doc(db, activeTab === 'vip' ? 'vip_content' : activeTab, id));
+      let collName = activeTab as string;
+      if (activeTab === 'vip') collName = 'vip_content';
+      
+      await deleteDoc(doc(db, collName, id));
       setItems(prev => prev.filter(i => i.id !== id));
     } catch (e) { console.error(e); }
   };
@@ -64,16 +71,21 @@ const AdminContent: React.FC = () => {
         else data[key] = value;
     });
 
-    // Checkbox handling for VIP
+    // Checkbox handling for VIP/Active
     const isVip = (form.elements.namedItem('isVip') as HTMLInputElement)?.checked;
+    const isActive = (form.elements.namedItem('isActive') as HTMLInputElement)?.checked;
+
     if (activeTab === 'articles' || activeTab === 'rituals') data.isVip = isVip;
     if (activeTab === 'vip') data.exclusive = true;
+    if (activeTab === 'products') data.isActive = isActive;
 
     // Defaults
     if (!data.imageUrl) data.imageUrl = 'https://picsum.photos/id/1015/800/600';
 
     try {
-      const collName = activeTab === 'vip' ? 'vip_content' : activeTab;
+      let collName = activeTab as string;
+      if (activeTab === 'vip') collName = 'vip_content';
+
       if (editingItem?.id) {
         await updateDoc(doc(db, collName, editingItem.id), data);
         setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...data } : i));
@@ -144,17 +156,17 @@ const AdminContent: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-serif font-bold text-white">Gestão de Conteúdo</h1>
-          <p className="text-stone-400">Blog, Rituais e Materiais do Terreiro.</p>
+          <p className="text-stone-400">Blog, Rituais e Produtos da Loja.</p>
         </div>
         <button onClick={handleNew} className="bg-umbanda-gold hover:bg-yellow-600 text-stone-950 font-bold py-2 px-6 rounded-lg flex items-center gap-2">
-            <Plus size={18} /> Novo Conteúdo
+            <Plus size={18} /> Novo Item
         </button>
       </div>
 
-      <div className="flex gap-2 bg-stone-900 p-2 rounded-lg mb-6 border border-stone-800 w-fit">
-        {['articles', 'rituals', 'entities', 'vip'].map(t => (
-            <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded capitalize text-sm font-bold transition-colors ${activeTab === t ? 'bg-stone-800 text-white' : 'text-stone-500 hover:text-stone-300'}`}>
-                {t === 'vip' ? 'Clube VIP' : t}
+      <div className="flex flex-wrap gap-2 bg-stone-900 p-2 rounded-lg mb-6 border border-stone-800 w-fit">
+        {['articles', 'rituals', 'products', 'entities', 'vip'].map(t => (
+            <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded capitalize text-sm font-bold transition-colors ${activeTab === t ? 'bg-stone-800 text-white shadow ring-1 ring-stone-700' : 'text-stone-500 hover:text-stone-300'}`}>
+                {t === 'vip' ? 'Clube VIP' : t === 'products' ? 'Produtos & Ofertas' : t}
             </button>
         ))}
       </div>
@@ -165,9 +177,9 @@ const AdminContent: React.FC = () => {
           <table className="w-full text-left">
             <thead className="bg-stone-950 text-stone-500 text-xs uppercase">
               <tr>
-                <th className="p-4">Título</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Acesso</th>
+                <th className="p-4">Título / Nome</th>
+                <th className="p-4">Status / Info</th>
+                <th className="p-4">{activeTab === 'products' ? 'Preço' : 'Acesso'}</th>
                 <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
@@ -176,14 +188,25 @@ const AdminContent: React.FC = () => {
                 <tr key={item.id} className="hover:bg-stone-800/50">
                   <td className="p-4">
                       <div className="font-bold text-white">{item.title || item.name}</div>
-                      <div className="text-xs text-stone-500">{item.focusKeyword ? `SEO: ${item.focusKeyword}` : 'Sem keyword'}</div>
+                      <div className="text-xs text-stone-500">
+                          {activeTab === 'products' ? `Slug: ${item.slug}` : item.focusKeyword ? `SEO: ${item.focusKeyword}` : 'Sem keyword'}
+                      </div>
                   </td>
-                  <td className="p-4"><span className="bg-green-900/30 text-green-500 px-2 py-1 rounded text-xs border border-green-900">Publicado</span></td>
                   <td className="p-4">
-                      {item.isVip || item.exclusive ? 
-                        <span className="flex items-center gap-1 text-purple-400 text-xs font-bold"><Crown size={12}/> VIP</span> : 
-                        <span className="text-stone-500 text-xs">Gratuito</span>
-                      }
+                      {activeTab === 'products' ? (
+                          item.checkoutUrl ? <span className="text-green-500 text-xs flex items-center gap-1"><LinkIcon size={12}/> Link Configurado</span> : <span className="text-red-500 text-xs">Sem Link</span>
+                      ) : (
+                          <span className="bg-green-900/30 text-green-500 px-2 py-1 rounded text-xs border border-green-900">Publicado</span>
+                      )}
+                  </td>
+                  <td className="p-4">
+                      {activeTab === 'products' ? (
+                          <span className="font-mono font-bold text-white">R$ {item.price}</span>
+                      ) : (
+                          item.isVip || item.exclusive ? 
+                            <span className="flex items-center gap-1 text-purple-400 text-xs font-bold"><Crown size={12}/> VIP</span> : 
+                            <span className="text-stone-500 text-xs">Gratuito</span>
+                      )}
                   </td>
                   <td className="p-4 text-right flex justify-end gap-2">
                       <button onClick={() => handleEdit(item)} className="p-2 bg-stone-800 rounded hover:text-umbanda-gold"><Edit2 size={16}/></button>
@@ -206,23 +229,25 @@ const AdminContent: React.FC = () => {
                 <div className="h-16 border-b border-stone-800 flex items-center justify-between px-6 bg-stone-900">
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         {editingItem?.id ? <Edit2 size={18}/> : <Plus size={18}/>} 
-                        {editingItem?.id ? 'Editar Conteúdo' : 'Criar Novo Conteúdo'}
+                        {activeTab === 'products' ? 'Editar Produto' : editingItem?.id ? 'Editar Conteúdo' : 'Criar Novo Conteúdo'}
                     </h2>
                     <div className="flex gap-4">
-                         {/* VIP TOGGLE */}
+                         {/* TOGGLES */}
                         {(activeTab === 'articles' || activeTab === 'rituals') && (
                             <label className="flex items-center gap-2 cursor-pointer bg-stone-800 px-3 py-1.5 rounded border border-stone-700 hover:border-purple-500 transition-colors">
-                                <input 
-                                    type="checkbox" 
-                                    name="isVip" 
-                                    defaultChecked={editingItem?.isVip} 
-                                    className="accent-purple-500"
-                                />
-                                <span className="text-xs font-bold text-purple-300 flex items-center gap-1"><Crown size={12}/> Conteúdo VIP</span>
+                                <input type="checkbox" name="isVip" defaultChecked={editingItem?.isVip} className="accent-purple-500"/>
+                                <span className="text-xs font-bold text-purple-300 flex items-center gap-1"><Crown size={12}/> VIP</span>
                             </label>
                         )}
+                        {activeTab === 'products' && (
+                            <label className="flex items-center gap-2 cursor-pointer bg-stone-800 px-3 py-1.5 rounded border border-stone-700 hover:border-green-500 transition-colors">
+                                <input type="checkbox" name="isActive" defaultChecked={editingItem?.isActive !== false} className="accent-green-500"/>
+                                <span className="text-xs font-bold text-green-300 flex items-center gap-1"><CheckCircle size={12}/> Ativo</span>
+                            </label>
+                        )}
+
                         <button onClick={() => document.getElementById('cms-form')?.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))} className="bg-green-700 hover:bg-green-600 text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-2">
-                            {saving ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>} Publicar
+                            {saving ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>} Salvar
                         </button>
                         <button onClick={() => setIsEditorOpen(false)} className="text-stone-500 hover:text-white"><X size={24}/></button>
                     </div>
@@ -238,7 +263,7 @@ const AdminContent: React.FC = () => {
                                 name={activeTab === 'entities' ? 'name' : 'title'} 
                                 value={editingItem?.[activeTab === 'entities' ? 'name' : 'title'] || ''}
                                 onChange={e => updateField(activeTab === 'entities' ? 'name' : 'title', e.target.value)}
-                                placeholder="Título do Conteúdo (H1)" 
+                                placeholder="Título / Nome do Produto" 
                                 className="w-full bg-transparent text-4xl font-serif font-bold text-white placeholder-stone-700 border-none focus:ring-0 px-0"
                                 required
                             />
@@ -253,8 +278,48 @@ const AdminContent: React.FC = () => {
                             )}
                         </div>
 
+                        {/* PRODUCT SPECIFIC FIELDS */}
+                        {activeTab === 'products' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-stone-900 p-6 rounded-xl border border-stone-800">
+                                <div className="col-span-1 md:col-span-2">
+                                    <h3 className="font-bold text-white flex items-center gap-2 mb-4 text-sm uppercase tracking-widest border-b border-stone-800 pb-2">
+                                        <ShoppingBag size={16} className="text-green-500"/> Configuração de Vendas
+                                    </h3>
+                                </div>
+                                <Input 
+                                    label="Slug (ID Interno)" 
+                                    name="slug" 
+                                    val={editingItem?.slug} 
+                                    change={updateField} 
+                                    placeholder="ex: vip_mensal, oraculo_avancado"
+                                    hint="Use IDs únicos: vip_mensal, oraculo_avancado, sonhos_premium"
+                                />
+                                <Input 
+                                    label="Preço (R$)" 
+                                    name="price" 
+                                    val={editingItem?.price} 
+                                    change={updateField} 
+                                    placeholder="29.90"
+                                />
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Link de Checkout (Kiwify)</label>
+                                    <div className="flex gap-2">
+                                        <div className="bg-stone-950 border border-stone-800 p-3 rounded-l text-stone-500"><LinkIcon size={16}/></div>
+                                        <input 
+                                            name="checkoutUrl"
+                                            value={editingItem?.checkoutUrl || ''}
+                                            onChange={e => updateField('checkoutUrl', e.target.value)}
+                                            className="w-full bg-stone-900 border border-stone-800 rounded-r p-3 text-white focus:border-green-500 focus:outline-none font-mono text-sm text-green-400"
+                                            placeholder="https://pay.kiwify.com.br/..." 
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-stone-500 mt-1">Cole aqui o link direto do checkout do produto criado na Kiwify.</p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Rich Text Editor Simulation */}
-                        <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden min-h-[500px] flex flex-col">
+                        <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden min-h-[400px] flex flex-col">
                             {/* Toolbar */}
                             <div className="border-b border-stone-800 p-2 flex gap-1 bg-stone-950 sticky top-0 z-10">
                                 <ToolBtn icon={<Bold size={16}/>} />
@@ -264,18 +329,20 @@ const AdminContent: React.FC = () => {
                                 <ToolBtn icon={<LinkIcon size={16}/>} />
                                 <ToolBtn icon={<Image size={16}/>} />
                                 <div className="flex-1"></div>
-                                <button type="button" onClick={generateAIContent} className="text-xs bg-indigo-900/50 text-indigo-300 px-3 py-1 rounded flex items-center gap-2 hover:bg-indigo-900 border border-indigo-800">
-                                    <Wand2 size={14}/> Escrever com IA
-                                </button>
+                                {activeTab === 'articles' && (
+                                    <button type="button" onClick={generateAIContent} className="text-xs bg-indigo-900/50 text-indigo-300 px-3 py-1 rounded flex items-center gap-2 hover:bg-indigo-900 border border-indigo-800">
+                                        <Wand2 size={14}/> Escrever com IA
+                                    </button>
+                                )}
                             </div>
                             
                             {/* Text Area */}
                             <textarea 
-                                name={activeTab === 'entities' || activeTab === 'rituals' ? 'description' : 'content'}
-                                value={editingItem?.[activeTab === 'entities' || activeTab === 'rituals' ? 'description' : 'content'] || ''}
-                                onChange={e => updateField(activeTab === 'entities' || activeTab === 'rituals' ? 'description' : 'content', e.target.value)}
+                                name={activeTab === 'entities' || activeTab === 'rituals' || activeTab === 'products' ? 'description' : 'content'}
+                                value={editingItem?.[activeTab === 'entities' || activeTab === 'rituals' || activeTab === 'products' ? 'description' : 'content'] || ''}
+                                onChange={e => updateField(activeTab === 'entities' || activeTab === 'rituals' || activeTab === 'products' ? 'description' : 'content', e.target.value)}
                                 className="flex-1 w-full bg-stone-900 p-6 text-stone-300 text-lg leading-relaxed focus:outline-none resize-none font-sans"
-                                placeholder="Comece a escrever seu conteúdo sagrado aqui..."
+                                placeholder={activeTab === 'products' ? "Descreva os benefícios do produto..." : "Comece a escrever seu conteúdo sagrado aqui..."}
                             />
                         </div>
 
@@ -350,7 +417,7 @@ const ToolBtn = ({icon}: any) => (
     <button type="button" className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded transition-colors">{icon}</button>
 );
 
-const Input = ({ label, name, val, change }: any) => (
+const Input = ({ label, name, val, change, placeholder, hint }: any) => (
   <div>
     <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{label}</label>
     <input 
@@ -358,7 +425,9 @@ const Input = ({ label, name, val, change }: any) => (
         value={val || ''}
         onChange={e => change(name, e.target.value)}
         className="w-full bg-stone-900 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none" 
+        placeholder={placeholder}
     />
+    {hint && <p className="text-[10px] text-stone-600 mt-1">{hint}</p>}
   </div>
 );
 
