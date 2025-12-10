@@ -6,6 +6,7 @@ export interface Ritual {
   imageUrl: string;
   duration: string;
   difficulty: 'Iniciante' | 'Intermediário' | 'Avançado';
+  isVip?: boolean; // Monetização
 }
 
 export interface Entity {
@@ -22,19 +23,27 @@ export interface Article {
   id: string;
   title: string;
   excerpt: string;
-  content?: string; // Conteudo completo HTML
+  content?: string;
   author: string;
+  authorRole?: string;
+  authorAvatar?: string;
   date: string;
   tags: string[];
   imageUrl: string;
-  likes?: number; // Campo opcional para contagem de curtidas
+  likes?: number;
+  views?: number; // Analytics
+  isVip?: boolean; // Monetização
+  focusKeyword?: string; // SEO
+  metaTitle?: string; // SEO
+  metaDescription?: string; // SEO
+  faqs?: { question: string; answer: string }[];
 }
 
 export interface Comment {
   id: string;
   name: string;
   text: string;
-  createdAt: any; // Timestamp do Firestore
+  createdAt: any;
 }
 
 export interface Testimonial {
@@ -50,7 +59,15 @@ export interface VipContent {
   title: string;
   type: 'video' | 'ebook' | 'ritual_exclusivo';
   description: string;
-  url: string; // Link do video ou download
+  url: string;
   thumbnailUrl: string;
   exclusive: boolean;
+}
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  plan: 'free' | 'monthly' | 'yearly';
+  status: 'active' | 'past_due' | 'canceled';
+  joinedAt: any;
 }

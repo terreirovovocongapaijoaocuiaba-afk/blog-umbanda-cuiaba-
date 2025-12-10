@@ -4,24 +4,56 @@ import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, limit, getDocs, updateDoc, increment, addDoc, serverTimestamp, onSnapshot, orderBy } from 'firebase/firestore';
 import { Article, Comment } from '../types';
 import { 
-  Loader2, ArrowLeft, Calendar, User, Tag, Share2, 
-  Facebook, Twitter, Link as LinkIcon, MessageCircle, 
-  Clock, BookOpen, Heart, Send, MessageSquare
+  Loader2, Calendar, Clock, BookOpen, Heart, Send, PlayCircle, Star, ChevronDown, ChevronUp,
+  MessageSquare, Volume2, List, Sparkles, Lock, Crown
 } from 'lucide-react';
+import { SITE_NAME } from '../constants';
+
+// --- VIP GATE COMPONENT ---
+const VipGate: React.FC<{ children: React.ReactNode, isVip: boolean }> = ({ children, isVip }) => {
+    // Simulated auth check. In real app, check useContext(AuthContext).user.isSubscriber
+    const isUserSubscriber = false; 
+
+    if (!isVip || isUserSubscriber) return <>{children}</>;
+
+    return (
+        <div className="relative">
+            {/* Blurrable Content */}
+            <div className="filter blur-sm select-none pointer-events-none opacity-50 h-[400px] overflow-hidden">
+                {children}
+            </div>
+            
+            {/* Lock Overlay */}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-transparent to-stone-50 dark:to-stone-950">
+                <div className="bg-stone-900 p-8 rounded-2xl border border-umbanda-gold/30 shadow-2xl max-w-md transform transition-all hover:scale-105">
+                    <div className="w-16 h-16 bg-gradient-to-br from-umbanda-gold to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-yellow-600/20">
+                        <Lock size={32} />
+                    </div>
+                    <h3 className="text-2xl font-serif font-bold text-white mb-2">Conteúdo Exclusivo VIP</h3>
+                    <p className="text-stone-300 mb-6">Este fundamento é reservado para membros da nossa corrente de estudos. Assine para liberar.</p>
+                    <Link to="/vip" className="block w-full py-4 bg-umbanda-red hover:bg-red-800 text-white font-bold rounded-lg transition-colors uppercase tracking-widest text-sm">
+                        Quero Liberar Acesso
+                    </Link>
+                    <p className="text-xs text-stone-500 mt-4">Apenas R$ 29,90/mês. Cancele quando quiser.</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ArticleDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   
-  // Article Data
+  // Data State
   const [article, setArticle] = useState<Article | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Social Interactions State
+  // Interaction State
   const [likes, setLikes] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [userRating, setUserRating] = useState(0);
 
   // Comment Form State
   const [commentName, setCommentName] = useState('');
@@ -33,7 +65,6 @@ const ArticleDetail: React.FC = () => {
       if (!id) return;
       setLoading(true);
       try {
-        // 1. Fetch Main Article
         const docRef = doc(db, 'articles', id);
         const docSnap = await getDoc(docRef);
         
@@ -42,20 +73,16 @@ const ArticleDetail: React.FC = () => {
           setArticle(articleData);
           setLikes(articleData.likes || 0);
 
-          // Check Local Storage for Like
           const likedKey = `liked_article_${id}`;
-          if (localStorage.getItem(likedKey)) {
-            setHasLiked(true);
-          }
+          if (localStorage.getItem(likedKey)) setHasLiked(true);
 
-          // 2. Fetch Related (Simulated)
+          // Related (Simulated logic + Firestore)
           const q = query(collection(db, 'articles'), limit(4));
           const querySnapshot = await getDocs(q);
           const related = querySnapshot.docs
             .map(d => ({ id: d.id, ...d.data() } as Article))
             .filter(a => a.id !== id)
             .slice(0, 3);
-            
           setRelatedArticles(related);
         }
       } catch (error) {
@@ -65,372 +92,306 @@ const ArticleDetail: React.FC = () => {
       }
     };
     
-    // 3. Realtime Listener for Comments
     if (id) {
         const commentsRef = collection(db, 'articles', id, 'comments');
         const qComments = query(commentsRef, orderBy('createdAt', 'desc'));
-        
         const unsubscribe = onSnapshot(qComments, (snapshot) => {
-            const loadedComments = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Comment[];
+            const loadedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Comment[];
             setComments(loadedComments);
         });
-
         window.scrollTo(0, 0);
         fetchArticleAndRelated();
-        
         return () => unsubscribe();
     }
   }, [id]);
 
+  // --- HANDLERS ---
   const handleLike = async () => {
       if (!id || hasLiked) return;
-
-      // Optimistic UI update
       setLikes(prev => prev + 1);
       setHasLiked(true);
       localStorage.setItem(`liked_article_${id}`, 'true');
-
-      try {
-          const articleRef = doc(db, 'articles', id);
-          await updateDoc(articleRef, {
-              likes: increment(1)
-          });
-      } catch (error) {
-          console.error("Erro ao curtir:", error);
-          // Revert if error
-          setLikes(prev => prev - 1);
-          setHasLiked(false);
-      }
+      try { await updateDoc(doc(db, 'articles', id), { likes: increment(1) }); } catch (e) { console.error(e); }
   };
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!id || !commentName.trim() || !commentText.trim()) return;
-
       setIsSubmittingComment(true);
       try {
-          const commentsRef = collection(db, 'articles', id, 'comments');
-          await addDoc(commentsRef, {
+          await addDoc(collection(db, 'articles', id, 'comments'), {
               name: commentName,
               text: commentText,
               createdAt: serverTimestamp()
           });
-          setCommentText(''); // Keep name for convenience
-      } catch (error) {
-          console.error("Erro ao comentar:", error);
-          alert("Erro ao enviar comentário. Tente novamente.");
-      } finally {
-          setIsSubmittingComment(false);
-      }
+          setCommentText('');
+      } catch (e) { alert("Erro ao enviar comentário."); } 
+      finally { setIsSubmittingComment(false); }
   };
 
-  const handleShare = (platform: string) => {
-    if (!article) return;
-    const url = window.location.href;
-    const text = encodeURIComponent(`Leia este artigo incrível no Umbanda Cuiabá: ${article.title}`);
-    
-    let shareUrl = '';
-    switch(platform) {
-        case 'whatsapp': shareUrl = `https://wa.me/?text=${text} ${url}`; break;
-        case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
-        case 'twitter': shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`; break;
-        case 'copy':
-            navigator.clipboard.writeText(url);
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
-            return;
-    }
-    if (shareUrl) window.open(shareUrl, '_blank');
+  const handleRate = (stars: number) => {
+    setUserRating(stars);
+    // Logic to save rating to DB would go here
   };
 
-  // Format Date Helper
-  const formatCommentDate = (timestamp: any) => {
-      if (!timestamp) return 'Agora mesmo';
-      const date = timestamp.toDate ? timestamp.toDate() : new Date();
-      return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
+  // Generate Table of Contents from H2 tags
+  const getTOC = (html: string) => {
+      const regex = /<h2.*?>(.*?)<\/h2>/g;
+      const matches = [...html.matchAll(regex)];
+      return matches.map((m, i) => ({ id: `section-${i}`, text: m[1].replace(/<[^>]+>/g, '') }));
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-32 flex justify-center bg-stone-50 dark:bg-umbanda-black">
-        <Loader2 className="w-10 h-10 text-umbanda-gold animate-spin" />
-      </div>
-    );
-  }
+  // Add IDs to H2s in content
+  const processContent = (html: string) => {
+      let count = 0;
+      return html.replace(/<h2(.*?)>/g, () => `<h2 id="section-${count++}"$1>`);
+  };
 
-  if (!article) {
-    return (
-      <div className="min-h-screen pt-32 container mx-auto px-6 text-center bg-stone-50 dark:bg-umbanda-black">
-        <h2 className="text-2xl text-stone-900 dark:text-white font-bold mb-4">Artigo não encontrado</h2>
-        <Link to="/artigos" className="text-umbanda-gold hover:underline">Voltar para o Blog</Link>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen pt-32 flex justify-center bg-stone-50 dark:bg-umbanda-black"><Loader2 className="w-10 h-10 text-umbanda-gold animate-spin" /></div>;
+  if (!article) return <div className="min-h-screen pt-32 text-center text-white">Artigo não encontrado.</div>;
 
-  // Calculate read time estimate (rough)
   const wordCount = article.content ? article.content.replace(/<[^>]*>?/gm, '').split(' ').length : 0;
   const readTime = Math.ceil(wordCount / 200);
+  const toc = article.content ? getTOC(article.content) : [];
+  const processedContent = article.content ? processContent(article.content) : '';
+
+  // JSON-LD Schema
+  const schemaData = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": article.title,
+    "image": article.imageUrl,
+    "author": { "@type": "Person", "name": article.author },
+    "publisher": { "@type": "Organization", "name": SITE_NAME },
+    "datePublished": article.date,
+    "description": article.excerpt,
+    "isAccessibleForFree": !article.isVip
+  };
 
   return (
     <div className="bg-stone-50 dark:bg-umbanda-black min-h-screen animate-fadeIn font-sans text-stone-800 dark:text-stone-200 transition-colors duration-300">
-      
-      {/* --- HERO SECTION --- */}
-      <div className="relative h-[50vh] md:h-[65vh] w-full">
-        {/* Image Background */}
-        <div className="absolute inset-0">
-            <img 
-            src={article.imageUrl} 
-            alt={article.title} 
-            className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-stone-50 dark:from-umbanda-black via-stone-900/50 dark:via-umbanda-black/80 to-transparent"></div>
-            <div className="absolute inset-0 bg-umbanda-red/10 mix-blend-multiply"></div>
-        </div>
+      <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
 
-        {/* Hero Content */}
-        <div className="absolute bottom-0 left-0 w-full z-20 pb-16">
-            <div className="container mx-auto px-6 md:px-12">
-                <Link to="/artigos" className="inline-flex items-center text-stone-200 hover:text-umbanda-gold mb-8 transition-colors font-bold text-xs uppercase tracking-[0.2em] group">
-                    <ArrowLeft size={14} className="mr-2 group-hover:-translate-x-1 transition-transform"/> Voltar para o Blog
-                </Link>
+      {/* --- PREMIUM HERO SECTION --- */}
+      <div className="relative w-full h-[60vh] md:h-[75vh] overflow-hidden">
+        <img 
+          src={article.imageUrl} 
+          alt={article.title} 
+          className="w-full h-full object-cover fixed-bg-effect"
+          style={{ transform: 'scale(1.05)' }} 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-stone-900/40 to-black/30 dark:from-umbanda-black dark:via-umbanda-black/60 dark:to-black/60"></div>
+        
+        <div className="absolute bottom-0 left-0 w-full z-20 pb-12 md:pb-20">
+            <div className="container mx-auto px-6 max-w-5xl">
+                {article.isVip && (
+                    <div className="inline-flex items-center gap-2 bg-purple-600/20 border border-purple-500/50 text-purple-300 px-3 py-1 rounded-full mb-4 backdrop-blur-md">
+                        <Crown size={14} className="text-purple-400 fill-purple-400"/>
+                        <span className="text-xs font-bold uppercase tracking-wider">Conteúdo Exclusivo VIP</span>
+                    </div>
+                )}
                 
-                <div className="flex flex-wrap items-center gap-4 mb-6">
-                    {article.tags?.map(tag => (
-                        <span key={tag} className="bg-umbanda-gold/20 text-umbanda-gold border border-umbanda-gold/30 px-3 py-1 text-xs font-bold uppercase rounded tracking-wider backdrop-blur-md">
-                            {tag}
-                        </span>
-                    ))}
-                    <span className="flex items-center text-xs text-stone-300 font-medium">
-                        <Clock size={14} className="mr-1"/> {readTime} min de leitura
-                    </span>
-                </div>
-
-                <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight max-w-5xl drop-shadow-2xl mb-8">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white leading-tight mb-6 drop-shadow-2xl">
                     {article.title}
                 </h1>
+                
+                <p className="text-lg md:text-2xl text-stone-200 font-serif italic mb-8 max-w-3xl leading-relaxed border-l-4 border-umbanda-gold pl-6">
+                    "{article.excerpt}"
+                </p>
 
-                <div className="flex items-center gap-4 border-t border-white/20 dark:border-stone-800 pt-6 max-w-3xl">
-                    <div className="w-12 h-12 bg-white/10 backdrop-blur rounded-full flex items-center justify-center text-stone-200 border-2 border-white/20">
-                        <User size={24} />
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full border-2 border-umbanda-gold p-0.5 bg-black/20 backdrop-blur">
+                            <img src={article.authorAvatar || `https://ui-avatars.com/api/?name=${article.author}`} alt={article.author} className="w-full h-full rounded-full object-cover" />
+                        </div>
+                        <div>
+                            <p className="text-white font-bold text-lg">{article.author}</p>
+                            <p className="text-stone-300 text-xs uppercase tracking-wide">{article.authorRole || 'Colunista Espiritual'}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-white font-bold text-sm">Escrito por {article.author}</p>
-                        <p className="text-stone-300 text-xs flex items-center gap-2">
-                             <Calendar size={12}/> {article.date}
-                        </p>
+                    <div className="hidden md:block w-px h-10 bg-white/20"></div>
+                    <div className="flex items-center gap-6 text-stone-300 text-sm font-medium">
+                        <span className="flex items-center gap-2"><Calendar size={16} /> {article.date}</span>
+                        <span className="flex items-center gap-2"><Clock size={16} /> {readTime} min</span>
+                        <span className="flex items-center gap-2 text-umbanda-gold"><Star size={16} fill="currentColor"/> 4.9</span>
                     </div>
                 </div>
             </div>
         </div>
       </div>
 
-      {/* --- MAIN CONTENT AREA --- */}
-      <div className="container mx-auto px-6 md:px-12 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      {/* --- CONTENT WRAPPER --- */}
+      <div className="container mx-auto px-4 md:px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 max-w-7xl mx-auto">
             
-            {/* ARTICLE BODY */}
-            <main className="lg:col-span-8">
+            {/* LEFT SIDEBAR (Desktop) */}
+            <aside className="hidden lg:block lg:col-span-3 space-y-8 sticky top-24 h-fit">
+                {/* TOC */}
+                <div className="bg-white dark:bg-stone-900 rounded-xl p-6 border border-stone-200 dark:border-stone-800 shadow-lg">
+                    <h4 className="font-bold text-stone-900 dark:text-white mb-4 flex items-center gap-2">
+                        <List size={18} className="text-umbanda-gold"/> Índice
+                    </h4>
+                    <nav className="space-y-2 text-sm">
+                        {toc.length > 0 ? toc.map((item) => (
+                            <a href={`#${item.id}`} key={item.id} className="block text-stone-600 dark:text-stone-400 hover:text-umbanda-red dark:hover:text-umbanda-gold transition-colors pl-2 border-l-2 border-transparent hover:border-umbanda-gold">
+                                {item.text}
+                            </a>
+                        )) : <p className="text-xs text-stone-500">Sem seções definidas.</p>}
+                    </nav>
+                </div>
+            </aside>
+
+            {/* MAIN ARTICLE */}
+            <main className="lg:col-span-6">
                 
-                {/* Social Share Mobile */}
-                <div className="flex justify-between items-center mb-8 lg:hidden pb-8 border-b border-stone-200 dark:border-stone-800">
-                    <div className="flex gap-4">
-                        <button onClick={() => handleShare('whatsapp')} className="bg-[#25D366] text-white p-3 rounded-full"><MessageCircle size={20}/></button>
-                        <button onClick={() => handleShare('facebook')} className="bg-[#1877F2] text-white p-3 rounded-full"><Facebook size={20}/></button>
+                {/* Audio Reader */}
+                <div className="bg-gradient-to-r from-stone-100 to-white dark:from-stone-900 dark:to-stone-950 p-4 rounded-xl border border-stone-200 dark:border-stone-800 mb-8 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-umbanda-gold/20 text-umbanda-gold flex items-center justify-center">
+                             <Volume2 size={20}/>
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold uppercase text-stone-500 dark:text-stone-400">Escutar Artigo</p>
+                            <p className="text-sm font-bold text-stone-800 dark:text-white">{readTime} minutos</p>
+                        </div>
                     </div>
-                    <button 
-                        onClick={handleLike} 
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all ${hasLiked ? 'bg-umbanda-red text-white' : 'bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300'}`}
-                    >
-                        <Heart size={20} fill={hasLiked ? "currentColor" : "none"} /> {likes}
-                    </button>
                 </div>
 
-                {/* The Content */}
-                <article className="
-                    prose prose-lg max-w-none 
-                    text-stone-700 dark:text-stone-300
-                    prose-headings:font-serif prose-headings:font-bold prose-headings:text-stone-900 dark:prose-headings:text-stone-100 prose-headings:mt-12 prose-headings:mb-6
-                    prose-h1:text-4xl prose-h2:text-3xl prose-h2:border-l-4 prose-h2:border-umbanda-red prose-h2:pl-4
-                    prose-h3:text-2xl prose-h3:text-umbanda-gold
-                    prose-p:leading-8 prose-p:mb-6
-                    prose-strong:text-stone-900 dark:prose-strong:text-white prose-strong:font-bold
-                    prose-lead:text-xl prose-lead:text-stone-800 dark:prose-lead:text-stone-200 prose-lead:font-serif prose-lead:italic
-                    prose-a:text-umbanda-gold prose-a:font-bold prose-a:no-underline hover:prose-a:underline hover:prose-a:text-umbanda-red dark:hover:prose-a:text-white transition-colors
-                    prose-blockquote:border-l-umbanda-gold prose-blockquote:bg-stone-100 dark:prose-blockquote:bg-stone-900/40 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:text-stone-800 dark:prose-blockquote:text-stone-200 prose-blockquote:not-italic prose-blockquote:font-serif
-                    prose-ul:list-disc prose-ul:marker:text-umbanda-red prose-li:mb-2
-                    prose-img:rounded-xl prose-img:shadow-2xl prose-img:border prose-img:border-stone-200 dark:prose-img:border-stone-800 prose-img:my-10
-                    prose-hr:border-stone-200 dark:prose-hr:border-stone-800 prose-hr:my-12
-                ">
-                    <div dangerouslySetInnerHTML={{ __html: article.content || `<p class="lead">${article.excerpt}</p><p>Conteúdo completo em breve...</p>` }} />
-                </article>
-
-                {/* Footer Interaction Area */}
-                <div className="mt-16 pt-10 border-t border-stone-200 dark:border-stone-800">
+                {/* --- CONTENT START WITH PAYWALL --- */}
+                <VipGate isVip={article.isVip || false}>
+                    <article className="
+                        prose prose-lg md:prose-xl max-w-none 
+                        text-stone-700 dark:text-stone-300
+                        prose-p:leading-[1.9] prose-p:mb-8 prose-p:font-light
+                        prose-headings:font-serif prose-headings:font-bold prose-headings:text-stone-900 dark:prose-headings:text-stone-100
+                        prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-l-4 prose-h2:border-umbanda-gold prose-h2:pl-4 prose-h2:relative
+                        prose-h3:text-2xl prose-h3:text-umbanda-redBright
+                        prose-a:text-umbanda-red prose-a:font-bold prose-a:no-underline hover:prose-a:underline
+                        prose-img:rounded-xl prose-img:shadow-2xl prose-img:my-10
+                    ">
+                         <div dangerouslySetInnerHTML={{ __html: processedContent || `<p class="lead">${article.excerpt}</p>` }} />
+                    </article>
                     
-                    {/* Like & Share Big Block */}
-                    <div className="bg-stone-100 dark:bg-stone-900 rounded-xl p-8 mb-12 flex flex-col md:flex-row justify-between items-center gap-8 border border-stone-200 dark:border-stone-800">
-                        <div className="text-center md:text-left">
-                            <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-2">Gostou deste ensinamento?</h3>
-                            <p className="text-stone-600 dark:text-stone-400">Deixe seu axé clicando no coração ao lado.</p>
+                     {/* BIG IDEA BOX (Only shows if unlocked) */}
+                    <div className="my-12 bg-gradient-to-br from-amber-50 to-white dark:from-stone-900 dark:to-stone-950 p-8 rounded-2xl border border-amber-200 dark:border-stone-800 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Sparkles size={100} className="text-umbanda-gold"/>
                         </div>
-                        <div className="flex items-center gap-6">
-                            <button 
-                                onClick={handleLike} 
-                                className={`group flex flex-col items-center justify-center w-20 h-20 rounded-full border-2 transition-all duration-300 ${hasLiked ? 'bg-umbanda-red border-umbanda-red shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 'bg-transparent border-stone-300 dark:border-stone-600 hover:border-umbanda-red'}`}
-                            >
-                                <Heart 
-                                    size={32} 
-                                    className={`transition-all duration-300 ${hasLiked ? 'text-white scale-110' : 'text-stone-400 group-hover:text-umbanda-red'}`} 
-                                    fill={hasLiked ? "currentColor" : "none"} 
-                                />
-                                <span className={`text-xs font-bold mt-1 ${hasLiked ? 'text-white' : 'text-stone-500 group-hover:text-umbanda-red'}`}>{likes}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Social Buttons */}
-                    <div className="flex justify-center md:justify-start gap-3 mb-12">
-                         <span className="text-sm font-bold uppercase tracking-wider text-stone-500 py-3 mr-2">Compartilhar:</span>
-                         <button onClick={() => handleShare('whatsapp')} className="flex items-center gap-2 bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-white px-4 py-2 rounded-lg transition-all font-bold text-sm border border-[#25D366]/20">
-                            <MessageCircle size={18}/> <span className="hidden sm:inline">WhatsApp</span>
-                         </button>
-                         <button onClick={() => handleShare('facebook')} className="p-3 bg-stone-200 dark:bg-stone-800 hover:bg-[#1877F2] text-stone-600 dark:text-stone-300 hover:text-white rounded-lg transition-all">
-                            <Facebook size={18}/>
-                         </button>
-                         <button onClick={() => handleShare('copy')} className="p-3 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white rounded-lg transition-all relative">
-                            <LinkIcon size={18}/>
-                            {copySuccess && <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] bg-white text-black px-2 py-1 rounded">Copiado!</span>}
-                         </button>
-                    </div>
-
-                    {/* COMMENTS SECTION */}
-                    <div className="bg-stone-100 dark:bg-stone-900/40 rounded-2xl p-6 md:p-10 border border-stone-200 dark:border-stone-800">
-                        <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-8 flex items-center gap-3">
-                            <MessageSquare className="text-umbanda-gold" /> Comentários da Corrente ({comments.length})
+                        <h3 className="text-umbanda-gold font-bold uppercase tracking-widest text-xs mb-2 flex items-center gap-2">
+                            <Sparkles size={16}/> Ensinamento da Casa
                         </h3>
-
-                        {/* Comment Form */}
-                        <form onSubmit={handleCommentSubmit} className="mb-12 bg-white dark:bg-stone-900 p-6 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm dark:shadow-inner">
-                            <div className="mb-4">
-                                <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Seu Nome</label>
-                                <input 
-                                    type="text" 
-                                    value={commentName}
-                                    onChange={(e) => setCommentName(e.target.value)}
-                                    placeholder="Digite seu nome ou apelido"
-                                    className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:border-umbanda-gold focus:outline-none placeholder-stone-400 dark:placeholder-stone-700"
-                                    required
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Sua Mensagem</label>
-                                <textarea 
-                                    value={commentText}
-                                    onChange={(e) => setCommentText(e.target.value)}
-                                    placeholder="Deixe seu axé, dúvida ou agradecimento..."
-                                    rows={3}
-                                    className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:border-umbanda-gold focus:outline-none placeholder-stone-400 dark:placeholder-stone-700 resize-none"
-                                    required
-                                />
-                            </div>
-                            <button 
-                                type="submit" 
-                                disabled={isSubmittingComment}
-                                className="bg-umbanda-gold hover:bg-yellow-600 text-white dark:text-stone-950 font-bold py-3 px-6 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {isSubmittingComment ? <Loader2 className="animate-spin" size={18}/> : <Send size={18}/>}
-                                Publicar Comentário
-                            </button>
-                        </form>
-
-                        {/* Comments List */}
-                        <div className="space-y-6">
-                            {comments.length === 0 ? (
-                                <p className="text-center text-stone-500 py-8 italic">Seja o primeiro a deixar seu axé neste artigo.</p>
-                            ) : (
-                                comments.map(comment => (
-                                    <div key={comment.id} className="flex gap-4 animate-fadeIn">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-stone-200 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 flex items-center justify-center text-stone-500 dark:text-stone-400 font-serif font-bold flex-shrink-0">
-                                            {comment.name.substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="bg-white dark:bg-stone-900 rounded-lg rounded-tl-none p-4 border border-stone-200 dark:border-stone-800/50 shadow-sm">
-                                                <div className="flex justify-between items-baseline mb-2">
-                                                    <h4 className="font-bold text-stone-900 dark:text-white text-sm">{comment.name}</h4>
-                                                    <span className="text-[10px] text-stone-500">{formatCommentDate(comment.createdAt)}</span>
-                                                </div>
-                                                <p className="text-stone-700 dark:text-stone-300 text-sm leading-relaxed whitespace-pre-wrap">{comment.text}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Author Bio Box */}
-                <div className="mt-12 bg-stone-100 dark:bg-stone-900/60 p-8 rounded-2xl border border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-                    <div className="w-20 h-20 bg-stone-200 dark:bg-stone-800 rounded-full flex items-center justify-center text-stone-500 border-2 border-umbanda-gold/50 flex-shrink-0">
-                        <User size={40} />
-                    </div>
-                    <div>
-                        <h4 className="text-stone-900 dark:text-white font-serif font-bold text-lg mb-2">Sobre {article.author}</h4>
-                        <p className="text-stone-600 dark:text-stone-400 text-sm leading-relaxed mb-4">
-                            Membro da curimba de conteúdo do Umbanda Cuiabá. Dedicado aos estudos da espiritualidade e fundamentos de terreiro.
+                        <p className="text-xl md:text-2xl font-serif font-bold text-stone-800 dark:text-stone-200 leading-relaxed italic relative z-10">
+                            "Na Umbanda, o conhecimento não se guarda, se compartilha. A verdadeira magia está na transformação de quem estuda e pratica o bem."
                         </p>
                     </div>
+                </VipGate>
+
+                {/* Rating System */}
+                <div className="py-8 border-y border-stone-200 dark:border-stone-800 my-10 text-center">
+                    <p className="text-stone-500 font-bold uppercase text-xs mb-4">Esse conteúdo foi útil para você?</p>
+                    <div className="flex justify-center gap-2">
+                        {[1,2,3,4,5].map(star => (
+                            <button key={star} onClick={() => handleRate(star)} className="group">
+                                <Star 
+                                    size={28} 
+                                    className={`transition-colors ${star <= userRating ? 'text-umbanda-gold fill-umbanda-gold' : 'text-stone-300 dark:text-stone-700 group-hover:text-umbanda-gold'}`}
+                                />
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
+                {/* FAQ Section (SEO) */}
+                {article.faqs && article.faqs.length > 0 && (
+                    <div className="mb-12">
+                        <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-6">Perguntas Frequentes</h3>
+                        <div className="space-y-4">
+                            {article.faqs.map((faq, idx) => (
+                                <details key={idx} className="group bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg open:border-umbanda-gold/50 transition-colors">
+                                    <summary className="flex justify-between items-center cursor-pointer p-4 font-bold text-stone-800 dark:text-stone-200">
+                                        {faq.question}
+                                        <ChevronDown className="group-open:rotate-180 transition-transform" size={18} />
+                                    </summary>
+                                    <div className="p-4 pt-0 text-stone-600 dark:text-stone-400 leading-relaxed border-t border-transparent group-open:border-stone-200 dark:group-open:border-stone-800 group-open:mt-2">
+                                        {faq.answer}
+                                    </div>
+                                </details>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Comments */}
+                <div className="mt-16">
+                     <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-8 flex items-center gap-3">
+                        <MessageSquare className="text-umbanda-gold" /> Comentários ({comments.length})
+                    </h3>
+                    
+                    <form onSubmit={handleCommentSubmit} className="mb-10 bg-white dark:bg-stone-900 p-6 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm">
+                        <textarea 
+                            value={commentText} onChange={e => setCommentText(e.target.value)} 
+                            placeholder="Deixe sua mensagem de axé..." 
+                            className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded p-4 text-stone-900 dark:text-white focus:outline-none focus:border-umbanda-gold mb-4 min-h-[100px]"
+                        />
+                        <div className="flex gap-4">
+                            <input value={commentName} onChange={e => setCommentName(e.target.value)} placeholder="Seu Nome" className="flex-1 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:outline-none focus:border-umbanda-gold"/>
+                            <button type="submit" disabled={isSubmittingComment} className="bg-umbanda-gold hover:bg-yellow-600 text-white font-bold px-8 rounded transition-colors disabled:opacity-50">
+                                {isSubmittingComment ? <Loader2 className="animate-spin"/> : 'Publicar'}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="space-y-6">
+                        {comments.map(c => (
+                            <div key={c.id} className="flex gap-4">
+                                <div className="w-10 h-10 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center font-bold text-stone-500">{c.name.charAt(0)}</div>
+                                <div>
+                                    <div className="flex items-baseline gap-2">
+                                        <h5 className="font-bold text-stone-900 dark:text-white">{c.name}</h5>
+                                        <span className="text-xs text-stone-500">Hoje</span>
+                                    </div>
+                                    <p className="text-stone-600 dark:text-stone-400 text-sm mt-1">{c.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </main>
 
-            {/* SIDEBAR */}
-            <aside className="lg:col-span-4 space-y-12">
-                
-                {/* Related Articles Widget */}
-                <div className="bg-stone-50 dark:bg-stone-900/30 border border-stone-200 dark:border-stone-800 rounded-xl p-6">
-                    <h3 className="text-lg font-serif font-bold text-stone-900 dark:text-white mb-6 flex items-center gap-2">
-                        <BookOpen size={18} className="text-umbanda-gold"/> Veja Também
-                    </h3>
-                    <div className="space-y-6">
-                        {relatedArticles.map(item => (
-                            <Link to={`/artigos/${item.id}`} key={item.id} className="group flex gap-4 items-start">
-                                <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-stone-200 dark:bg-stone-800">
-                                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 grayscale group-hover:grayscale-0"/>
+            {/* RIGHT SIDEBAR (Sticky) */}
+            <aside className="lg:col-span-3 space-y-8">
+                {/* CTA Card */}
+                <div className="bg-stone-900 text-white rounded-xl p-6 border border-stone-800 shadow-xl sticky top-24">
+                    <div className="w-12 h-12 bg-umbanda-gold rounded-full flex items-center justify-center mb-4 text-stone-900">
+                        <Sparkles size={24}/>
+                    </div>
+                    <h3 className="text-xl font-bold font-serif mb-2">Evolua sua Mediunidade</h3>
+                    <p className="text-stone-400 text-sm mb-6">Entre para o Clube VIP e tenha acesso a rituais secretos e ebooks mensais.</p>
+                    <Link to="/vip" className="block w-full text-center py-3 bg-gradient-to-r from-umbanda-red to-red-800 font-bold rounded hover:shadow-lg transition-all">
+                        Quero Ser VIP
+                    </Link>
+                </div>
+
+                {/* Related Articles */}
+                <div>
+                    <h4 className="font-bold text-stone-900 dark:text-white mb-4 uppercase text-xs tracking-widest border-b border-stone-200 dark:border-stone-800 pb-2">Leia Também</h4>
+                    <div className="space-y-4">
+                        {relatedArticles.map(rel => (
+                            <Link to={`/artigos/${rel.id}`} key={rel.id} className="flex gap-3 group">
+                                <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src={rel.imageUrl} alt={rel.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform grayscale group-hover:grayscale-0"/>
                                 </div>
                                 <div>
-                                    <h4 className="text-stone-800 dark:text-stone-200 font-bold text-sm leading-snug group-hover:text-umbanda-gold transition-colors mb-1 line-clamp-3">
-                                        {item.title}
-                                    </h4>
-                                    <span className="text-xs text-stone-500">{item.date}</span>
+                                    <span className="text-[10px] text-umbanda-gold font-bold uppercase">{rel.tags?.[0]}</span>
+                                    <h5 className="text-sm font-bold text-stone-800 dark:text-stone-200 leading-snug group-hover:text-umbanda-red transition-colors line-clamp-3">
+                                        {rel.title}
+                                    </h5>
                                 </div>
                             </Link>
                         ))}
-                        {relatedArticles.length === 0 && <p className="text-stone-500 text-sm">Sem outros artigos no momento.</p>}
                     </div>
                 </div>
-
-                {/* Newsletter Widget */}
-                <div className="bg-gradient-to-b from-stone-100 to-stone-200 dark:from-stone-900 dark:to-stone-950 border border-stone-200 dark:border-stone-800 p-8 rounded-xl sticky top-24 text-center">
-                    <div className="w-12 h-12 bg-umbanda-red/20 text-umbanda-red rounded-full flex items-center justify-center mx-auto mb-4 border border-umbanda-red/30">
-                        <Share2 size={24}/>
-                    </div>
-                    <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-white mb-2">Participe da Corrente</h3>
-                    <p className="text-stone-600 dark:text-stone-400 mb-6 text-sm">
-                        Não perca nenhum fundamento. Receba novos artigos e avisos de gira no seu e-mail.
-                    </p>
-                    <input type="email" placeholder="Seu melhor e-mail" className="w-full bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white mb-3 focus:border-umbanda-gold focus:outline-none text-sm"/>
-                    <button className="w-full bg-umbanda-red hover:bg-red-800 text-white font-bold py-3 rounded transition-colors text-sm uppercase tracking-wide">
-                        Inscrever-se Agora
-                    </button>
-                    <p className="text-[10px] text-stone-500 dark:text-stone-600 mt-4">Respeitamos seu axé. Zero spam.</p>
-                </div>
-
             </aside>
-
         </div>
       </div>
     </div>

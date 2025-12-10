@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Loader2, Sparkles, AlertCircle, Video, BookOpen, Crown, Wand2, Lightbulb, RefreshCw, ArrowRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Loader2, Sparkles, AlertCircle, Eye, Crown, Wand2, Lightbulb, RefreshCw, Bold, Italic, List, Link as LinkIcon, Image, CheckCircle, Search } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Article, Ritual, Entity, VipContent } from '../../types';
@@ -8,665 +8,357 @@ import { GoogleGenAI } from "@google/genai";
 const AdminContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'rituals' | 'entities' | 'vip'>('articles');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   
   // Data State
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [rituals, setRituals] = useState<Ritual[]>([]);
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [vipContent, setVipContent] = useState<VipContent[]>([]);
-  
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // AI State
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiKeywords, setAiKeywords] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState('');
+  // SEO Realtime State
+  const [seoScore, setSeoScore] = useState(0);
+  const [seoIssues, setSeoIssues] = useState<string[]>([]);
 
-  // Ideas State
-  const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
-  const [generatedIdeas, setGeneratedIdeas] = useState<string[]>([]);
-  const [ideasLoading, setIdeasLoading] = useState(false);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
+    const collName = activeTab === 'vip' ? 'vip_content' : activeTab;
     try {
-      const [artSnap, ritSnap, entSnap, vipSnap] = await Promise.all([
-        getDocs(collection(db, 'articles')),
-        getDocs(collection(db, 'rituals')),
-        getDocs(collection(db, 'entities')),
-        getDocs(collection(db, 'vip_content'))
-      ]);
-
-      setArticles(artSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article)));
-      setRituals(ritSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ritual)));
-      setEntities(entSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Entity)));
-      setVipContent(vipSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as VipContent)));
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error);
-    } finally {
-      setLoading(false);
-    }
+      const snap = await getDocs(collection(db, collName));
+      setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
   const handleEdit = (item: any) => {
     setEditingItem(item);
+    // Calc initial SEO score if editing article
+    if(activeTab === 'articles') calculateSeo(item);
     setIsEditorOpen(true);
   };
 
   const handleNew = () => {
-    setEditingItem(null);
+    setEditingItem({});
+    setSeoScore(0); setSeoIssues([]);
     setIsEditorOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir?")) return;
-    
+    if (!window.confirm("Excluir item permanentemente?")) return;
     try {
-      let coll = activeTab === 'vip' ? 'vip_content' : activeTab;
-      await deleteDoc(doc(db, coll, id));
-      
-      if (activeTab === 'articles') setArticles(prev => prev.filter(item => item.id !== id));
-      else if (activeTab === 'rituals') setRituals(prev => prev.filter(item => item.id !== id));
-      else if (activeTab === 'entities') setEntities(prev => prev.filter(item => item.id !== id));
-      else setVipContent(prev => prev.filter(item => item.id !== id));
-    } catch (error) {
-      console.error("Erro ao deletar:", error);
-    }
-  };
-
-  const generateIdeas = async () => {
-      setIdeasLoading(true);
-      setGeneratedIdeas([]);
-      try {
-        const settingsSnap = await getDoc(doc(db, 'settings', 'api_keys'));
-        const apiKey = settingsSnap.exists() ? settingsSnap.data().geminiKey : null;
-
-        if (!apiKey) {
-            alert('Configure a chave da API Gemini nas configurações.');
-            setIdeasLoading(false);
-            return;
-        }
-
-        const ai = new GoogleGenAI({ apiKey });
-        let prompt = "";
-
-        if (activeTab === 'articles') {
-            prompt = "Liste 5 títulos criativos, curiosos e com alto potencial de busca (SEO) para artigos de um blog de Umbanda. Fale sobre dúvidas comuns, fundamentos ou história. Retorne APENAS um JSON array de strings: [\"Titulo 1\", \"Titulo 2\"...]";
-        } else if (activeTab === 'rituals') {
-            prompt = "Liste 5 rituais ou firmezas de Umbanda (ex: prosperidade, amor, proteção) que seriam úteis para um consulente fazer em casa. Retorne APENAS um JSON array de strings.";
-        } else if (activeTab === 'entities') {
-            prompt = "Liste 5 entidades, orixás ou linhas de trabalho da Umbanda que merecem uma explicação detalhada. Retorne APENAS um JSON array de strings.";
-        } else if (activeTab === 'vip') {
-            prompt = "Liste 5 ideias de conteúdos exclusivos (Ebooks, Aulas ou Rituais Secretos) para vender em um Clube VIP de Umbanda. Retorne APENAS um JSON array de strings.";
-        }
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { responseMimeType: "application/json" }
-        });
-
-        const ideas = JSON.parse(response.text);
-        setGeneratedIdeas(ideas);
-
-      } catch (e: any) {
-          console.error(e);
-          alert("Erro ao gerar ideias: " + e.message);
-      } finally {
-          setIdeasLoading(false);
-      }
-  };
-
-  const handleSelectIdea = (idea: string) => {
-      setAiPrompt(idea);
-      setAiKeywords("");
-      setIsIdeaModalOpen(false);
-      setIsAiModalOpen(true);
-  };
-
-  const generateWithAI = async () => {
-    setAiLoading(true);
-    setAiError('');
-    try {
-        const settingsSnap = await getDoc(doc(db, 'settings', 'api_keys'));
-        const apiKey = settingsSnap.exists() ? settingsSnap.data().geminiKey : null;
-
-        if (!apiKey) {
-            setAiError('Chave da API Gemini não configurada em Configurações > IA.');
-            setAiLoading(false);
-            return;
-        }
-
-        const ai = new GoogleGenAI({ apiKey });
-        
-        let promptContext = "";
-        let jsonSchema = "";
-
-        // Lógica de Prompt Dinâmico baseada na Aba Ativa
-        if (activeTab === 'articles') {
-            promptContext = `Escreva um artigo completo para blog de Umbanda. TEMA: ${aiPrompt}. PALAVRAS-CHAVE: ${aiKeywords}.
-            REGRAS: Título chamativo, conteúdo HTML com <h2>, <p>, <ul>, min 600 palavras.`;
-            jsonSchema = `{
-                "title": "Título do Artigo",
-                "excerpt": "Resumo curto (meta description)",
-                "content": "<p>Conteúdo HTML...</p>",
-                "tags": ["tag1", "tag2"],
-                "imagePrompt": "Descrição visual em inglês para gerar imagem"
-            }`;
-        } else if (activeTab === 'rituals') {
-            promptContext = `Crie um ritual detalhado de Umbanda. OBJETIVO: ${aiPrompt}. ELEMENTOS: ${aiKeywords}.
-            REGRAS: Liste materiais, passo a passo, dificuldade e duração estimada.`;
-            jsonSchema = `{
-                "title": "Nome do Ritual",
-                "category": "Prosperidade|Amor|Proteção|Limpeza|Saúde",
-                "difficulty": "Iniciante|Intermediário|Avançado",
-                "duration": "Ex: 30 min",
-                "description": "Texto completo do ritual com materiais e modo de fazer...",
-                "imagePrompt": "Descrição visual do altar ou elementos em inglês"
-            }`;
-        } else if (activeTab === 'entities') {
-            promptContext = `Descreva uma Entidade ou Linha de Umbanda. NOME/LINHA: ${aiPrompt}. DETALHES: ${aiKeywords}.
-            REGRAS: Forneça saudação, cores, símbolos e como a entidade trabalha.`;
-            jsonSchema = `{
-                "name": "Nome da Entidade",
-                "line": "Esquerda|Direita|Almas|Matas|Crianças",
-                "greeting": "Saudação (Ex: Laroyê)",
-                "color": "Cores da entidade",
-                "symbol": "Tridente|Taça|Flecha|Cachimbo|Espada|Ancora",
-                "description": "História e características da entidade...",
-                "imagePrompt": "Descrição visual da entidade em inglês"
-            }`;
-        } else if (activeTab === 'vip') {
-            promptContext = `Crie um título e descrição para um Conteúdo VIP (Ebook ou Vídeo) de Umbanda. TEMA: ${aiPrompt}.
-            REGRAS: Descrição persuasiva para venda ou acesso exclusivo.`;
-            jsonSchema = `{
-                "title": "Título do Material VIP",
-                "type": "video|ebook|ritual_exclusivo",
-                "description": "Copywriting persuasivo sobre o conteúdo...",
-                "url": "https://link-ficticio.com",
-                "imagePrompt": "Descrição visual da capa do material em inglês"
-            }`;
-        }
-
-        const prompt = `
-            Você é um Pai de Santo sábio e especialista em SEO.
-            ${promptContext}
-            
-            SAÍDA OBRIGATÓRIA (JSON PURO SEM MARKDOWN):
-            ${jsonSchema}
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { responseMimeType: "application/json" }
-        });
-
-        const generatedData = JSON.parse(response.text);
-
-        // Gera a URL da imagem
-        const imageDescription = generatedData.imagePrompt || 'umbanda spiritual atmosphere cinematic lighting';
-        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imageDescription)}?width=800&height=600&nologo=true&seed=${Math.floor(Math.random() * 1000)}`;
-
-        // Mapeia os dados gerados para o formato do State (editingItem)
-        let newItemData = {};
-
-        if (activeTab === 'articles') {
-            newItemData = {
-                title: generatedData.title,
-                excerpt: generatedData.excerpt,
-                content: generatedData.content,
-                tags: generatedData.tags,
-                imageUrl: aiImageUrl,
-                author: 'Umbanda Cuiabá (IA)',
-                date: new Date().toLocaleDateString('pt-BR')
-            };
-        } else if (activeTab === 'rituals') {
-            newItemData = {
-                title: generatedData.title,
-                imageUrl: aiImageUrl,
-                category: generatedData.category,
-                difficulty: generatedData.difficulty,
-                duration: generatedData.duration,
-                description: generatedData.description
-            };
-        } else if (activeTab === 'entities') {
-            newItemData = {
-                name: generatedData.name,
-                line: generatedData.line,
-                description: generatedData.description,
-                color: generatedData.color,
-                greeting: generatedData.greeting,
-                symbol: generatedData.symbol
-            };
-        } else if (activeTab === 'vip') {
-            newItemData = {
-                title: generatedData.title,
-                type: generatedData.type,
-                description: generatedData.description,
-                url: generatedData.url,
-                thumbnailUrl: aiImageUrl,
-                exclusive: true
-            };
-        }
-
-        setEditingItem(newItemData);
-        setIsAiModalOpen(false);
-        setIsEditorOpen(true);
-
-    } catch (err: any) {
-        console.error(err);
-        setAiError('Erro na geração: ' + err.message);
-    } finally {
-        setAiLoading(false);
-    }
+      await deleteDoc(doc(db, activeTab === 'vip' ? 'vip_content' : activeTab, id));
+      setItems(prev => prev.filter(i => i.id !== id));
+    } catch (e) { console.error(e); }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    let data: any = {
-        updatedAt: serverTimestamp()
-    };
-    let collectionName = activeTab === 'vip' ? 'vip_content' : activeTab;
+    
+    // Build object based on form data manually to handle checkbox and custom logic
+    const data: any = { updatedAt: serverTimestamp() };
+    formData.forEach((value, key) => {
+        if (key === 'tags') data[key] = (value as string).split(',').map(t => t.trim());
+        else data[key] = value;
+    });
+
+    // Checkbox handling for VIP
+    const isVip = (form.elements.namedItem('isVip') as HTMLInputElement)?.checked;
+    if (activeTab === 'articles' || activeTab === 'rituals') data.isVip = isVip;
+    if (activeTab === 'vip') data.exclusive = true;
+
+    // Defaults
+    if (!data.imageUrl) data.imageUrl = 'https://picsum.photos/id/1015/800/600';
 
     try {
-      if (activeTab === 'articles') {
-        data = {
-          ...data,
-          title: formData.get('title'),
-          imageUrl: formData.get('imageUrl') || 'https://picsum.photos/id/1015/800/600',
-          author: formData.get('author'),
-          date: formData.get('date'),
-          excerpt: formData.get('excerpt'),
-          content: formData.get('content'),
-          tags: (formData.get('tags') as string).split(',').map(t => t.trim()),
-        };
-      } else if (activeTab === 'rituals') {
-        data = {
-          ...data,
-          title: formData.get('title'),
-          imageUrl: formData.get('imageUrl') || 'https://picsum.photos/id/1029/800/600',
-          category: formData.get('category'),
-          difficulty: formData.get('difficulty'),
-          duration: formData.get('duration'),
-          description: formData.get('description'),
-        };
-      } else if (activeTab === 'entities') {
-        data = {
-          ...data,
-          name: formData.get('name'),
-          line: formData.get('line'),
-          description: formData.get('description'),
-          color: formData.get('color'),
-          greeting: formData.get('greeting'),
-          symbol: formData.get('symbol'),
-        };
-      } else if (activeTab === 'vip') {
-        data = {
-            ...data,
-            title: formData.get('title'),
-            description: formData.get('description'),
-            type: formData.get('type'),
-            url: formData.get('url'),
-            thumbnailUrl: formData.get('thumbnailUrl') || 'https://picsum.photos/id/1/200/200',
-            exclusive: true
-        };
+      const collName = activeTab === 'vip' ? 'vip_content' : activeTab;
+      if (editingItem?.id) {
+        await updateDoc(doc(db, collName, editingItem.id), data);
+        setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...data } : i));
+      } else {
+        data.createdAt = serverTimestamp();
+        const ref = await addDoc(collection(db, collName), data);
+        setItems(prev => [...prev, { id: ref.id, ...data }]);
+      }
+      setIsEditorOpen(false);
+    } catch (e) { alert("Erro ao salvar: " + e); } finally { setSaving(false); }
+  };
+
+  // --- SEO LOGIC ---
+  const calculateSeo = (data: any) => {
+      let score = 100;
+      let issues: string[] = [];
+      const content = data.content || data.description || '';
+      const title = data.title || '';
+      const keyword = data.focusKeyword || '';
+
+      if (!title) { score -= 20; issues.push("Título ausente."); }
+      else if (title.length < 10) { score -= 10; issues.push("Título muito curto."); }
+      
+      if (!content || content.length < 300) { score -= 20; issues.push("Conteúdo muito curto (<300 palavras)."); }
+      
+      if (keyword) {
+          if (!title.toLowerCase().includes(keyword.toLowerCase())) { score -= 15; issues.push("Palavra-chave não está no título."); }
+          if (!content.toLowerCase().includes(keyword.toLowerCase())) { score -= 20; issues.push("Palavra-chave não encontrada no texto."); }
+      } else {
+          score -= 10; issues.push("Defina uma palavra-chave foco.");
       }
 
-      if (editingItem && editingItem.id) {
-        await updateDoc(doc(db, collectionName, editingItem.id), data);
-      } else {
-        data.createdAt = serverTimestamp(); // Adiciona timestamp na criação
-        await addDoc(collection(db, collectionName), data);
-      }
+      if (!data.metaDescription) { score -= 10; issues.push("Meta descrição ausente."); }
+
+      setSeoScore(Math.max(0, score));
+      setSeoIssues(issues);
+  };
+
+  // Real-time update wrapper
+  const updateField = (field: string, val: any) => {
+      const updated = { ...editingItem, [field]: val };
+      setEditingItem(updated);
+      if (activeTab === 'articles') calculateSeo(updated);
+  };
+
+  // --- AI GENERATION ---
+  const generateAIContent = async () => {
+      const keyword = editingItem?.focusKeyword;
+      if (!keyword) return alert("Defina uma Palavra-Chave Foco primeiro!");
       
-      setIsEditorOpen(false);
-      fetchData(); 
-    } catch (error) {
-      console.error("Erro ao salvar:", error);
-      alert("Erro ao salvar dados.");
-    } finally {
-      setSaving(false);
-    }
-  };
-  
-  // Helper para o Label do Modal de IA
-  const getAiModalLabel = () => {
-      if (activeTab === 'articles') return "Sobre o que é o artigo?";
-      if (activeTab === 'rituals') return "Qual o objetivo do ritual?";
-      if (activeTab === 'entities') return "Qual entidade ou linha?";
-      if (activeTab === 'vip') return "Tema do material VIP?";
-      return "Tema";
-  };
-  
-  const getAiKeywordLabel = () => {
-      if (activeTab === 'rituals') return "Materiais principais (ex: velas, ervas)";
-      if (activeTab === 'entities') return "Detalhes (ex: cor, saudação)";
-      return "Palavras-chave";
+      const prompt = `Escreva um parágrafo introdutório otimizado para SEO sobre "${keyword}" para um blog de Umbanda. Use tom respeitoso e didático. HTML format.`;
+      
+      try {
+          const settingsSnap = await getDoc(doc(db, 'settings', 'api_keys'));
+          const apiKey = settingsSnap.exists() ? settingsSnap.data().geminiKey : null;
+          if(!apiKey) return alert("Configure a API Key em Configurações.");
+          
+          const ai = new GoogleGenAI({ apiKey });
+          const res = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+          
+          const newContent = (editingItem?.content || '') + res.text;
+          updateField('content', newContent);
+      } catch (e) { alert("Erro IA: " + e); }
   };
 
   return (
-    <div className="animate-fadeIn relative">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="animate-fadeIn relative h-full flex flex-col">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-white">Gerenciador de Conteúdo</h1>
-          <p className="text-stone-400 mt-1">Edite, crie ou remova publicações.</p>
+          <h1 className="text-3xl font-serif font-bold text-white">Gestão de Conteúdo</h1>
+          <p className="text-stone-400">Blog, Rituais e Materiais do Terreiro.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-            <button 
-                onClick={() => { setIsIdeaModalOpen(true); generateIdeas(); }}
-                className="bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors border border-stone-700"
-            >
-                <Lightbulb size={18} className="text-yellow-400"/>
-                <span className="hidden md:inline">Quero Ideias</span>
-            </button>
-            <button 
-                onClick={() => setIsAiModalOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors border border-indigo-500 shadow-lg shadow-indigo-900/50"
-            >
-                <Wand2 size={18} />
-                <span className="hidden md:inline">Criar com IA</span>
-            </button>
-            <button 
-                onClick={handleNew}
-                className="bg-umbanda-gold hover:bg-yellow-600 text-stone-950 font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
-            >
-                <Plus size={18} />
-                <span>Cadastrar Novo</span>
-            </button>
-        </div>
+        <button onClick={handleNew} className="bg-umbanda-gold hover:bg-yellow-600 text-stone-950 font-bold py-2 px-6 rounded-lg flex items-center gap-2">
+            <Plus size={18} /> Novo Conteúdo
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 bg-stone-900 p-2 rounded-lg mb-6 border border-stone-800">
-        <TabButton id="articles" label="Artigos do Blog" active={activeTab} set={setActiveTab} />
-        <TabButton id="rituals" label="Rituais" active={activeTab} set={setActiveTab} />
-        {/* MUDANÇA: Aba renomeada para "Linhas de Trabalho" */}
-        <TabButton id="entities" label="Linhas de Trabalho" active={activeTab} set={setActiveTab} />
-        <TabButton id="vip" label="Clube VIP" active={activeTab} set={setActiveTab} />
+      <div className="flex gap-2 bg-stone-900 p-2 rounded-lg mb-6 border border-stone-800 w-fit">
+        {['articles', 'rituals', 'entities', 'vip'].map(t => (
+            <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded capitalize text-sm font-bold transition-colors ${activeTab === t ? 'bg-stone-800 text-white' : 'text-stone-500 hover:text-stone-300'}`}>
+                {t === 'vip' ? 'Clube VIP' : t}
+            </button>
+        ))}
       </div>
 
-      {/* Table Area */}
-      <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden min-h-[400px]">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 text-umbanda-gold animate-spin" />
-          </div>
-        ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-stone-950 text-stone-500 text-xs uppercase tracking-wider">
-                <th className="p-4 font-bold border-b border-stone-800">Título / Nome</th>
-                <th className="p-4 font-bold border-b border-stone-800 hidden md:table-cell">Tipo / Categoria</th>
-                <th className="p-4 font-bold border-b border-stone-800 hidden md:table-cell">Info</th>
-                <th className="p-4 font-bold border-b border-stone-800 text-right">Ações</th>
+      {/* LIST VIEW */}
+      <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden flex-1">
+        {loading ? <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-umbanda-gold"/></div> : (
+          <table className="w-full text-left">
+            <thead className="bg-stone-950 text-stone-500 text-xs uppercase">
+              <tr>
+                <th className="p-4">Título</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Acesso</th>
+                <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-800">
-              {activeTab === 'articles' && articles.map(item => (
-                <Row key={item.id} title={item.title} sub={item.tags?.[0]} info={item.author} onEdit={() => handleEdit(item)} onDel={() => handleDelete(item.id)} />
+              {items.map(item => (
+                <tr key={item.id} className="hover:bg-stone-800/50">
+                  <td className="p-4">
+                      <div className="font-bold text-white">{item.title || item.name}</div>
+                      <div className="text-xs text-stone-500">{item.focusKeyword ? `SEO: ${item.focusKeyword}` : 'Sem keyword'}</div>
+                  </td>
+                  <td className="p-4"><span className="bg-green-900/30 text-green-500 px-2 py-1 rounded text-xs border border-green-900">Publicado</span></td>
+                  <td className="p-4">
+                      {item.isVip || item.exclusive ? 
+                        <span className="flex items-center gap-1 text-purple-400 text-xs font-bold"><Crown size={12}/> VIP</span> : 
+                        <span className="text-stone-500 text-xs">Gratuito</span>
+                      }
+                  </td>
+                  <td className="p-4 text-right flex justify-end gap-2">
+                      <button onClick={() => handleEdit(item)} className="p-2 bg-stone-800 rounded hover:text-umbanda-gold"><Edit2 size={16}/></button>
+                      <button onClick={() => handleDelete(item.id)} className="p-2 bg-stone-800 rounded hover:text-red-500"><Trash2 size={16}/></button>
+                  </td>
+                </tr>
               ))}
-              {activeTab === 'rituals' && rituals.map(item => (
-                <Row key={item.id} title={item.title} sub={item.category} info={item.difficulty} onEdit={() => handleEdit(item)} onDel={() => handleDelete(item.id)} />
-              ))}
-              {activeTab === 'entities' && entities.map(item => (
-                <Row key={item.id} title={item.name} sub={item.line} info={item.greeting} onEdit={() => handleEdit(item)} onDel={() => handleDelete(item.id)} />
-              ))}
-              {activeTab === 'vip' && vipContent.map(item => (
-                <Row key={item.id} title={item.title} sub={item.type} info="Exclusivo" onEdit={() => handleEdit(item)} onDel={() => handleDelete(item.id)} />
-              ))}
-              
-              {/* Empty States */}
-              {((activeTab === 'articles' && articles.length === 0) || (activeTab === 'rituals' && rituals.length === 0) || (activeTab === 'entities' && entities.length === 0) || (activeTab === 'vip' && vipContent.length === 0)) && (
-                 <tr><td colSpan={4} className="p-8 text-center text-stone-500">Nenhum registro encontrado nesta seção.</td></tr>
-              )}
             </tbody>
           </table>
         )}
       </div>
 
-      {/* Ideas Generator Modal */}
-      {isIdeaModalOpen && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-stone-900 border border-stone-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative animate-fadeIn">
-                  <button onClick={() => setIsIdeaModalOpen(false)} className="absolute top-4 right-4 text-stone-500 hover:text-white"><X size={24}/></button>
-                  
-                  <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-full bg-yellow-900/50 flex items-center justify-center border border-yellow-600 text-yellow-400">
-                          <Lightbulb size={20} />
-                      </div>
-                      <div>
-                          <h2 className="text-xl font-bold text-white">Ideias para {activeTab === 'vip' ? 'Clube VIP' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
-                          <p className="text-xs text-stone-400">Sugestões geradas por IA para você criar agora.</p>
-                      </div>
-                  </div>
-
-                  {ideasLoading ? (
-                      <div className="py-12 flex flex-col items-center justify-center text-stone-500">
-                          <Loader2 className="w-8 h-8 text-yellow-400 animate-spin mb-4" />
-                          <p>Buscando inspiração na Aruanda...</p>
-                      </div>
-                  ) : (
-                      <div className="space-y-3">
-                          {generatedIdeas.map((idea, idx) => (
-                              <button 
-                                key={idx}
-                                onClick={() => handleSelectIdea(idea)}
-                                className="w-full text-left p-4 rounded-lg bg-stone-950 border border-stone-800 hover:border-yellow-500 hover:bg-stone-900 transition-all flex justify-between items-center group"
-                              >
-                                  <span className="text-stone-300 group-hover:text-white text-sm font-medium">{idea}</span>
-                                  <ArrowRight size={16} className="text-stone-600 group-hover:text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </button>
-                          ))}
-                          <button 
-                            onClick={generateIdeas}
-                            className="w-full py-3 mt-4 text-xs font-bold uppercase text-stone-500 hover:text-white flex items-center justify-center gap-2"
-                          >
-                            <RefreshCw size={14} /> Gerar novas ideias
-                          </button>
-                      </div>
-                  )}
-              </div>
-          </div>
-      )}
-
-      {/* AI Modal */}
-      {isAiModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-stone-900 border border-stone-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
-                <button onClick={() => setIsAiModalOpen(false)} className="absolute top-4 right-4 text-stone-500 hover:text-white"><X size={24}/></button>
-                
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-indigo-900/50 flex items-center justify-center border border-indigo-500 text-indigo-400">
-                        <Sparkles size={20} />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-white">Criar com IA</h2>
-                        <p className="text-xs text-stone-400 capitalize">Gerando para: {activeTab}</p>
-                    </div>
-                </div>
-
-                {aiError && (
-                    <div className="bg-red-900/30 border border-red-800 text-red-300 p-3 rounded mb-4 text-sm flex gap-2 items-center">
-                        <AlertCircle size={16} /> {aiError}
-                    </div>
-                )}
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{getAiModalLabel()}</label>
-                        <input 
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            placeholder="Descreva o que deseja criar..."
-                            className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-indigo-500 focus:outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{getAiKeywordLabel()}</label>
-                        <input 
-                            value={aiKeywords}
-                            onChange={(e) => setAiKeywords(e.target.value)}
-                            placeholder="Informações adicionais..."
-                            className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-indigo-500 focus:outline-none"
-                        />
-                    </div>
-                    <button 
-                        onClick={generateWithAI}
-                        disabled={aiLoading || !aiPrompt}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {aiLoading ? <Loader2 className="animate-spin" /> : <Wand2 size={20} />}
-                        {aiLoading ? 'Trabalhando...' : 'Gerar Conteúdo Mágico'}
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
-
-      {/* Main Editor Drawer */}
+      {/* CMS EDITOR DRAWER */}
       {isEditorOpen && (
         <>
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={() => setIsEditorOpen(false)}></div>
-          <form onSubmit={handleSave} className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-stone-900 border-l border-stone-800 shadow-2xl z-50 overflow-y-auto">
-            <div className="p-6 border-b border-stone-800 flex justify-between items-center bg-stone-950 sticky top-0 z-10">
-              <h2 className="text-xl font-serif font-bold text-white capitalize">
-                {editingItem?.id ? 'Editar' : 'Criar'} {activeTab === 'vip' ? 'Conteúdo VIP' : activeTab === 'articles' ? 'Artigo' : activeTab === 'rituals' ? 'Ritual' : 'Linha de Trabalho'}
-              </h2>
-              <button type="button" onClick={() => setIsEditorOpen(false)} className="text-stone-500 hover:text-white"><X size={24} /></button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Articles Editor */}
-              {activeTab === 'articles' && (
-                <>
-                  <Input label="Título (H1)" name="title" required defaultValue={editingItem?.title} />
-                  <Input label="URL da Imagem de Capa" name="imageUrl" defaultValue={editingItem?.imageUrl} placeholder="https://..." />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input label="Autor" name="author" required defaultValue={editingItem?.author} />
-                    <Input label="Data" name="date" required defaultValue={editingItem?.date || new Date().toLocaleDateString('pt-BR')} />
-                  </div>
-                  <Input label="Tags SEO (separadas por vírgula)" name="tags" defaultValue={editingItem?.tags?.join(', ')} />
-                  <TextArea label="Resumo (Meta Description)" name="excerpt" rows={3} required defaultValue={editingItem?.excerpt} />
-                  
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Conteúdo do Artigo (HTML Aceito)</label>
-                    <textarea 
-                        name="content" 
-                        rows={15} 
-                        defaultValue={editingItem?.content} 
-                        className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white font-mono text-sm focus:border-umbanda-gold focus:outline-none"
-                        placeholder="<p>Escreva seu texto aqui...</p>"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Rituals Editor */}
-              {activeTab === 'rituals' && (
-                <>
-                   <Input label="Nome do Ritual" name="title" required defaultValue={editingItem?.title} />
-                   <Input label="URL da Imagem" name="imageUrl" defaultValue={editingItem?.imageUrl} placeholder="https://..." />
-                   <div className="grid grid-cols-2 gap-4">
-                      <Select label="Categoria" name="category" defaultValue={editingItem?.category} options={['Prosperidade', 'Amor', 'Proteção', 'Limpeza', 'Saúde']} />
-                      <Select label="Dificuldade" name="difficulty" defaultValue={editingItem?.difficulty} options={['Iniciante', 'Intermediário', 'Avançado']} />
-                   </div>
-                   <Input label="Duração Estimada" name="duration" defaultValue={editingItem?.duration} placeholder="Ex: 30 min" />
-                   <TextArea label="Passo a Passo / Descrição" name="description" rows={8} required defaultValue={editingItem?.description} />
-                </>
-              )}
-
-              {/* Entities Editor */}
-              {activeTab === 'entities' && (
-                <>
-                  <Input label="Nome da Entidade / Guia" name="name" required defaultValue={editingItem?.name} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Select label="Linha de Trabalho" name="line" defaultValue={editingItem?.line} options={['Esquerda', 'Direita', 'Almas', 'Matas', 'Crianças']} />
-                    <Select label="Símbolo" name="symbol" defaultValue={editingItem?.symbol} options={['Tridente', 'Taça', 'Flecha', 'Cachimbo', 'Espada', 'Ancora']} />
-                  </div>
-                  <Input label="Saudação" name="greeting" required defaultValue={editingItem?.greeting} />
-                  <Input label="Cores da Linha" name="color" defaultValue={editingItem?.color} />
-                  <TextArea label="Descrição / História" name="description" rows={6} required defaultValue={editingItem?.description} />
-                </>
-              )}
-
-              {/* VIP Editor */}
-              {activeTab === 'vip' && (
-                  <>
-                    <Input label="Título do Conteúdo" name="title" required defaultValue={editingItem?.title} />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Select label="Tipo de Material" name="type" defaultValue={editingItem?.type} options={['video', 'ebook', 'ritual_exclusivo']} />
-                        <Input label="Thumbnail URL" name="thumbnailUrl" defaultValue={editingItem?.thumbnailUrl} />
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" onClick={() => setIsEditorOpen(false)}></div>
+            <div className="fixed inset-y-0 right-0 w-full md:w-[90%] lg:w-[1100px] bg-stone-950 border-l border-stone-800 shadow-2xl z-50 flex flex-col animate-slideLeft">
+                
+                {/* Header */}
+                <div className="h-16 border-b border-stone-800 flex items-center justify-between px-6 bg-stone-900">
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        {editingItem?.id ? <Edit2 size={18}/> : <Plus size={18}/>} 
+                        {editingItem?.id ? 'Editar Conteúdo' : 'Criar Novo Conteúdo'}
+                    </h2>
+                    <div className="flex gap-4">
+                         {/* VIP TOGGLE */}
+                        {(activeTab === 'articles' || activeTab === 'rituals') && (
+                            <label className="flex items-center gap-2 cursor-pointer bg-stone-800 px-3 py-1.5 rounded border border-stone-700 hover:border-purple-500 transition-colors">
+                                <input 
+                                    type="checkbox" 
+                                    name="isVip" 
+                                    defaultChecked={editingItem?.isVip} 
+                                    className="accent-purple-500"
+                                />
+                                <span className="text-xs font-bold text-purple-300 flex items-center gap-1"><Crown size={12}/> Conteúdo VIP</span>
+                            </label>
+                        )}
+                        <button onClick={() => document.getElementById('cms-form')?.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))} className="bg-green-700 hover:bg-green-600 text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-2">
+                            {saving ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>} Publicar
+                        </button>
+                        <button onClick={() => setIsEditorOpen(false)} className="text-stone-500 hover:text-white"><X size={24}/></button>
                     </div>
-                    <Input label="Link de Acesso / Download / Youtube" name="url" required defaultValue={editingItem?.url} placeholder="https://..." />
-                    <TextArea label="Descrição do Conteúdo" name="description" rows={5} required defaultValue={editingItem?.description} />
-                  </>
-              )}
-            </div>
+                </div>
 
-            <div className="p-6 border-t border-stone-800 bg-stone-950 sticky bottom-0">
-              <button type="submit" disabled={saving} className="w-full py-4 bg-umbanda-red hover:bg-red-800 text-white font-bold rounded flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
-                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                {saving ? 'Salvando...' : 'Salvar Alterações'}
-              </button>
+                {/* Main Body */}
+                <div className="flex-1 flex overflow-hidden">
+                    <form id="cms-form" onSubmit={handleSave} className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                        
+                        {/* Title Section */}
+                        <div className="space-y-4">
+                            <input 
+                                name={activeTab === 'entities' ? 'name' : 'title'} 
+                                value={editingItem?.[activeTab === 'entities' ? 'name' : 'title'] || ''}
+                                onChange={e => updateField(activeTab === 'entities' ? 'name' : 'title', e.target.value)}
+                                placeholder="Título do Conteúdo (H1)" 
+                                className="w-full bg-transparent text-4xl font-serif font-bold text-white placeholder-stone-700 border-none focus:ring-0 px-0"
+                                required
+                            />
+                            {activeTab !== 'entities' && (
+                                <input 
+                                    name="imageUrl" 
+                                    value={editingItem?.imageUrl || ''}
+                                    onChange={e => updateField('imageUrl', e.target.value)}
+                                    placeholder="URL da Imagem de Capa (Unsplash/Storage)" 
+                                    className="w-full bg-stone-900/50 border border-stone-800 rounded p-2 text-stone-300 text-sm focus:border-umbanda-gold focus:outline-none"
+                                />
+                            )}
+                        </div>
+
+                        {/* Rich Text Editor Simulation */}
+                        <div className="bg-stone-900 border border-stone-800 rounded-xl overflow-hidden min-h-[500px] flex flex-col">
+                            {/* Toolbar */}
+                            <div className="border-b border-stone-800 p-2 flex gap-1 bg-stone-950 sticky top-0 z-10">
+                                <ToolBtn icon={<Bold size={16}/>} />
+                                <ToolBtn icon={<Italic size={16}/>} />
+                                <div className="w-px bg-stone-800 mx-2"></div>
+                                <ToolBtn icon={<List size={16}/>} />
+                                <ToolBtn icon={<LinkIcon size={16}/>} />
+                                <ToolBtn icon={<Image size={16}/>} />
+                                <div className="flex-1"></div>
+                                <button type="button" onClick={generateAIContent} className="text-xs bg-indigo-900/50 text-indigo-300 px-3 py-1 rounded flex items-center gap-2 hover:bg-indigo-900 border border-indigo-800">
+                                    <Wand2 size={14}/> Escrever com IA
+                                </button>
+                            </div>
+                            
+                            {/* Text Area */}
+                            <textarea 
+                                name={activeTab === 'entities' || activeTab === 'rituals' ? 'description' : 'content'}
+                                value={editingItem?.[activeTab === 'entities' || activeTab === 'rituals' ? 'description' : 'content'] || ''}
+                                onChange={e => updateField(activeTab === 'entities' || activeTab === 'rituals' ? 'description' : 'content', e.target.value)}
+                                className="flex-1 w-full bg-stone-900 p-6 text-stone-300 text-lg leading-relaxed focus:outline-none resize-none font-sans"
+                                placeholder="Comece a escrever seu conteúdo sagrado aqui..."
+                            />
+                        </div>
+
+                        {/* Meta Fields Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-stone-800">
+                             {/* Specific fields based on tab */}
+                             {activeTab === 'articles' && (
+                                 <>
+                                    <Input label="Autor" name="author" val={editingItem?.author} change={updateField} />
+                                    <Input label="Data" name="date" val={editingItem?.date} change={updateField} />
+                                    <Input label="Tags (separar por vírgula)" name="tags" val={editingItem?.tags} change={updateField} />
+                                    <Input label="Meta Title (SEO)" name="metaTitle" val={editingItem?.metaTitle} change={updateField} />
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Meta Description (SEO)</label>
+                                        <textarea name="excerpt" value={editingItem?.excerpt || ''} onChange={e => updateField('excerpt', e.target.value)} className="w-full bg-stone-900 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none" rows={2}/>
+                                    </div>
+                                 </>
+                             )}
+                             {activeTab === 'rituals' && (
+                                 <>
+                                    <Input label="Categoria" name="category" val={editingItem?.category} change={updateField} />
+                                    <Input label="Dificuldade" name="difficulty" val={editingItem?.difficulty} change={updateField} />
+                                    <Input label="Duração" name="duration" val={editingItem?.duration} change={updateField} />
+                                 </>
+                             )}
+                        </div>
+
+                    </form>
+
+                    {/* SEO Sidebar (Articles Only) */}
+                    {activeTab === 'articles' && (
+                        <aside className="w-80 border-l border-stone-800 bg-stone-900 p-6 overflow-y-auto hidden lg:block">
+                            <h3 className="font-bold text-white mb-4 flex items-center gap-2"><Search size={16}/> SEO Otimizer</h3>
+                            
+                            <div className="mb-6">
+                                <label className="text-xs font-bold text-stone-500 uppercase">Palavra-Chave Foco</label>
+                                <input 
+                                    name="focusKeyword"
+                                    value={editingItem?.focusKeyword || ''}
+                                    onChange={e => updateField('focusKeyword', e.target.value)}
+                                    className="w-full mt-1 bg-stone-950 border border-stone-800 rounded p-2 text-white text-sm focus:border-umbanda-gold focus:outline-none"
+                                    placeholder="Ex: Oração Ogum"
+                                />
+                            </div>
+
+                            <div className="bg-stone-950 p-4 rounded-xl border border-stone-800 mb-6 text-center">
+                                <div className={`text-4xl font-bold mb-1 ${seoScore >= 80 ? 'text-green-500' : seoScore >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>{seoScore}</div>
+                                <div className="text-xs text-stone-500 uppercase tracking-widest">SEO Score</div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold text-white uppercase border-b border-stone-800 pb-2">Checklist</h4>
+                                {seoIssues.length === 0 && <div className="text-green-500 text-sm flex items-center gap-2"><CheckCircle size={14}/> Tudo otimizado!</div>}
+                                {seoIssues.map((issue, i) => (
+                                    <div key={i} className="flex gap-2 items-start text-xs text-red-400">
+                                        <AlertCircle size={12} className="mt-0.5 flex-shrink-0"/>
+                                        <span>{issue}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </aside>
+                    )}
+                </div>
             </div>
-          </form>
         </>
       )}
     </div>
   );
 };
 
-const TabButton = ({id, label, active, set}: any) => (
-  <button onClick={() => set(id)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${active === id ? 'bg-stone-800 text-white shadow ring-1 ring-stone-700' : 'text-stone-500 hover:text-stone-300'}`}>
-    {label}
-  </button>
+const ToolBtn = ({icon}: any) => (
+    <button type="button" className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded transition-colors">{icon}</button>
 );
 
-const Row = ({title, sub, info, onEdit, onDel}: any) => (
-    <tr className="hover:bg-stone-800/50 transition-colors">
-        <td className="p-4"><div className="font-bold text-stone-200">{title}</div></td>
-        <td className="p-4 hidden md:table-cell"><span className="bg-stone-800 px-2 py-1 rounded text-xs border border-stone-700">{sub}</span></td>
-        <td className="p-4 hidden md:table-cell text-sm text-stone-400">{info}</td>
-        <td className="p-4 text-right space-x-2">
-        <button onClick={onEdit} className="text-stone-500 hover:text-umbanda-gold p-1"><Edit2 size={16} /></button>
-        <button onClick={onDel} className="text-stone-500 hover:text-red-500 p-1"><Trash2 size={16} /></button>
-        </td>
-    </tr>
-);
-
-const Input = ({ label, name, required, defaultValue, placeholder }: any) => (
+const Input = ({ label, name, val, change }: any) => (
   <div>
     <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{label}</label>
-    <input name={name} required={required} defaultValue={defaultValue} placeholder={placeholder} className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none" />
-  </div>
-);
-
-const TextArea = ({ label, name, required, defaultValue, rows, placeholder }: any) => (
-  <div>
-    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{label}</label>
-    <textarea name={name} required={required} defaultValue={defaultValue} rows={rows} placeholder={placeholder} className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none" />
-  </div>
-);
-
-const Select = ({ label, name, defaultValue, options }: any) => (
-  <div>
-    <label className="block text-xs font-bold uppercase text-stone-500 mb-2">{label}</label>
-    <select name={name} defaultValue={defaultValue} className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none">
-      {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-    </select>
+    <input 
+        name={name}
+        value={val || ''}
+        onChange={e => change(name, e.target.value)}
+        className="w-full bg-stone-900 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none" 
+    />
   </div>
 );
 
