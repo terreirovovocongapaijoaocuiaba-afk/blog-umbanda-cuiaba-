@@ -42,40 +42,40 @@ const Contact: React.FC = () => {
         {/* Info */}
         <div>
           <SectionHeading subtitle="Fale Conosco" title="Entre em Contato" centered={false} />
-          <p className="text-stone-400 mb-10 leading-relaxed text-lg">
+          <p className="text-stone-600 dark:text-stone-400 mb-10 leading-relaxed text-lg transition-colors">
             Nossa casa está de portas abertas para acolher você. Seja para tirar dúvidas, agendar um atendimento espiritual ou participar de nossas giras.
           </p>
 
           <div className="space-y-8">
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 rounded bg-umbanda-red/10 text-umbanda-red flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded bg-umbanda-red/10 text-umbanda-red flex items-center justify-center flex-shrink-0 border border-umbanda-red/20">
                 <MapPin />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg">Localização</h4>
-                <p className="text-stone-400">Rua dos Orixás, 123 - Centro Norte</p>
-                <p className="text-stone-400">Cuiabá - MT, 78000-000</p>
+                <h4 className="text-stone-900 dark:text-white font-bold text-lg">Localização</h4>
+                <p className="text-stone-600 dark:text-stone-400">Rua dos Orixás, 123 - Centro Norte</p>
+                <p className="text-stone-600 dark:text-stone-400">Cuiabá - MT, 78000-000</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 rounded bg-umbanda-red/10 text-umbanda-red flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded bg-umbanda-red/10 text-umbanda-red flex items-center justify-center flex-shrink-0 border border-umbanda-red/20">
                 <Clock />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg">Horários de Gira</h4>
-                <p className="text-stone-400">Sábados: Abertura às 18h</p>
-                <p className="text-stone-400">Atendimentos: Seg e Qua (Agendado)</p>
+                <h4 className="text-stone-900 dark:text-white font-bold text-lg">Horários de Gira</h4>
+                <p className="text-stone-600 dark:text-stone-400">Sábados: Abertura às 18h</p>
+                <p className="text-stone-600 dark:text-stone-400">Atendimentos: Seg e Qua (Agendado)</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 rounded bg-umbanda-red/10 text-umbanda-red flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded bg-umbanda-red/10 text-umbanda-red flex items-center justify-center flex-shrink-0 border border-umbanda-red/20">
                 <Phone />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg">Whatsapp</h4>
-                <p className="text-stone-400">(65) 99999-9999</p>
+                <h4 className="text-stone-900 dark:text-white font-bold text-lg">Whatsapp</h4>
+                <p className="text-stone-600 dark:text-stone-400">(65) 99999-9999</p>
                 <p className="text-stone-500 text-sm">Apenas mensagens</p>
               </div>
             </div>
@@ -83,16 +83,16 @@ const Contact: React.FC = () => {
         </div>
 
         {/* Form */}
-        <div className="bg-stone-900 p-8 rounded-2xl border border-stone-800 shadow-xl">
-          <h3 className="text-2xl font-serif font-bold text-white mb-6">Envie sua mensagem</h3>
+        <div className="bg-white dark:bg-stone-900 p-8 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-xl transition-colors duration-300">
+          <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-6">Envie sua mensagem</h3>
           
           {sent ? (
             <div className="h-64 flex flex-col items-center justify-center text-center animate-fadeIn">
-              <div className="w-16 h-16 bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle size={32} />
               </div>
-              <h4 className="text-xl font-bold text-white mb-2">Mensagem Enviada!</h4>
-              <p className="text-stone-400 mb-6">Nossa curimba responderá em breve.</p>
+              <h4 className="text-xl font-bold text-stone-900 dark:text-white mb-2">Mensagem Enviada!</h4>
+              <p className="text-stone-600 dark:text-stone-400 mb-6">Nossa curimba responderá em breve.</p>
               <button onClick={() => setSent(false)} className="text-umbanda-gold hover:underline text-sm font-bold uppercase">
                 Enviar nova mensagem
               </button>
@@ -102,16 +102,16 @@ const Contact: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Nome Completo</label>
-                  <input name="name" required type="text" className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none transition-colors" />
+                  <input name="name" required type="text" className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:border-umbanda-gold focus:outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Telefone</label>
-                  <input name="phone" required type="text" className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none transition-colors" />
+                  <input name="phone" required type="text" className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:border-umbanda-gold focus:outline-none transition-colors" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Assunto</label>
-                <select name="subject" className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none transition-colors">
+                <select name="subject" className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:border-umbanda-gold focus:outline-none transition-colors">
                   <option>Dúvida sobre Giras</option>
                   <option>Agendamento</option>
                   <option>Clube VIP</option>
@@ -120,7 +120,7 @@ const Contact: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-stone-500 mb-2">Mensagem</label>
-                <textarea name="message" required rows={4} className="w-full bg-stone-950 border border-stone-800 rounded p-3 text-white focus:border-umbanda-gold focus:outline-none transition-colors"></textarea>
+                <textarea name="message" required rows={4} className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded p-3 text-stone-900 dark:text-white focus:border-umbanda-gold focus:outline-none transition-colors"></textarea>
               </div>
               <button 
                 type="submit" 
