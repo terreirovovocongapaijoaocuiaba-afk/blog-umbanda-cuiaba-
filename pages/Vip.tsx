@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, Crown, Lock, PlayCircle, BookOpen, Star, ShieldCheck, CreditCard, Video, FileText, Zap, LogOut } from 'lucide-react';
+import { CheckCircle, Crown, Lock, PlayCircle, BookOpen, Star, ShieldCheck, CreditCard, Video, FileText, Zap, LogOut, ArrowRight, Flame } from 'lucide-react';
 import TestimonialCarousel from '../components/TestimonialCarousel';
 import TrustBadges from '../components/TrustBadges';
 import { StatsSection, FooterCTA } from '../components/ConversionSections';
@@ -8,10 +8,22 @@ import { isUserPremium, setPremiumStatus } from '../lib/usageUtils';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { VipContent } from '../types';
+import { Link } from 'react-router-dom';
+
+// Interface unificada para exibição
+interface UnifiedVipItem {
+    id: string;
+    title: string;
+    description: string;
+    thumbnailUrl: string;
+    type: 'video' | 'ebook' | 'ritual_exclusivo' | 'article_vip' | 'ritual_vip';
+    link: string;
+    date?: any;
+}
 
 const Vip: React.FC = () => {
   const [isPremium, setIsPremium] = useState(false);
-  const [content, setContent] = useState<VipContent[]>([]);
+  const [content, setContent] = useState<UnifiedVipItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
@@ -22,13 +34,57 @@ const Vip: React.FC = () => {
         
         if (status) {
             try {
-                const q = query(collection(db, 'vip_content'), orderBy('createdAt', 'desc')); // Assuming createdAt exists, else remove orderBy
-                // Fallback query if index missing issues arise in dev
-                const snap = await getDocs(collection(db, 'vip_content')); 
-                const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as VipContent));
-                setContent(data);
+                // 1. Buscar Conteúdo VIP Exclusivo (Vídeos/Ebooks)
+                const vipQuery = query(collection(db, 'vip_content'));
+                const vipSnap = await getDocs(vipQuery);
+                const vipItems = vipSnap.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        title: data.title,
+                        description: data.description,
+                        thumbnailUrl: data.thumbnailUrl,
+                        type: data.type || 'video',
+                        link: data.url || '#' // Link externo ou modal
+                    } as UnifiedVipItem;
+                });
+
+                // 2. Buscar Artigos VIP
+                const artQuery = query(collection(db, 'articles'), where('isVip', '==', true));
+                const artSnap = await getDocs(artQuery);
+                const artItems = artSnap.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        title: data.title,
+                        description: data.excerpt,
+                        thumbnailUrl: data.imageUrl,
+                        type: 'article_vip',
+                        link: `/artigos/${doc.id}`
+                    } as UnifiedVipItem;
+                });
+
+                // 3. Buscar Rituais VIP
+                const ritQuery = query(collection(db, 'rituals'), where('isVip', '==', true));
+                const ritSnap = await getDocs(ritQuery);
+                const ritItems = ritSnap.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        title: data.title,
+                        description: data.description,
+                        thumbnailUrl: data.imageUrl,
+                        type: 'ritual_vip',
+                        link: '/rituais' // Poderia ser detalhe se existisse página
+                    } as UnifiedVipItem;
+                });
+
+                // Unificar e Ordenar (Mockando ordem pois vem de coleções diferentes)
+                const allItems = [...vipItems, ...artItems, ...ritItems];
+                setContent(allItems);
+
             } catch (e) {
-                console.error("Erro ao carregar conteúdo VIP:", e);
+                console.error("Erro ao carregar conteúdo VIP unificado:", e);
             }
         }
         setLoading(false);
@@ -43,10 +99,14 @@ const Vip: React.FC = () => {
       }
   };
 
-  const filteredContent = filter === 'all' ? content : content.filter(c => c.type === filter);
+  const filteredContent = filter === 'all' ? content : content.filter(c => {
+      if (filter === 'leitura') return c.type === 'article_vip' || c.type === 'ebook';
+      if (filter === 'pratica') return c.type === 'ritual_vip' || c.type === 'ritual_exclusivo';
+      return c.type === filter;
+  });
 
   // --- VIP DASHBOARD VIEW ---
-  if (loading) return <div className="min-h-screen bg-[#1a1520] flex items-center justify-center text-white">Carregando Templo...</div>;
+  if (loading) return <div className="min-h-screen bg-[#1a1520] flex items-center justify-center text-white font-serif">Abrindo a Porteira...</div>;
 
   if (isPremium) {
       return (
@@ -59,7 +119,7 @@ const Vip: React.FC = () => {
                             <Crown size={14} /> Membro da Corrente
                         </div>
                         <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2">Área do Assinante</h1>
-                        <p className="text-purple-200">Bem-vindo de volta. Seu axé está garantido.</p>
+                        <p className="text-purple-200">Bem-vindo de volta. Todo o conhecimento sagrado está liberado para você.</p>
                     </div>
                     <div className="flex gap-4">
                         <button className="px-6 py-2 bg-purple-800/50 border border-purple-500/30 rounded-lg text-sm font-bold hover:bg-purple-800 transition-colors">
@@ -78,14 +138,14 @@ const Vip: React.FC = () => {
                     <div className="bg-[#1e1a24] p-6 rounded-xl border border-purple-500/20 shadow-xl flex items-center gap-4">
                         <div className="p-3 bg-purple-500/20 rounded-full text-purple-400"><Video size={24}/></div>
                         <div>
-                            <h4 className="font-bold text-white">Aulas Novas</h4>
-                            <p className="text-xs text-stone-400">3 disponíveis essa semana</p>
+                            <h4 className="font-bold text-white">Conteúdos Disponíveis</h4>
+                            <p className="text-xs text-stone-400">{content.length} materiais liberados</p>
                         </div>
                     </div>
                     <div className="bg-[#1e1a24] p-6 rounded-xl border border-purple-500/20 shadow-xl flex items-center gap-4">
                         <div className="p-3 bg-yellow-500/20 rounded-full text-yellow-400"><Star size={24}/></div>
                         <div>
-                            <h4 className="font-bold text-white">Rituais Exclusivos</h4>
+                            <h4 className="font-bold text-white">Rituais de Alta Magia</h4>
                             <p className="text-xs text-stone-400">Acesse firmezas avançadas</p>
                         </div>
                     </div>
@@ -102,15 +162,10 @@ const Vip: React.FC = () => {
             {/* Main Content Feed */}
             <div className="container mx-auto px-6">
                 <div className="flex flex-wrap gap-4 mb-8 border-b border-stone-800 pb-4">
-                    {['all', 'video', 'ebook', 'ritual_exclusivo'].map(t => (
-                        <button 
-                            key={t}
-                            onClick={() => setFilter(t)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold capitalize transition-all ${filter === t ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'bg-stone-800 text-stone-400 hover:text-white'}`}
-                        >
-                            {t === 'all' ? 'Todos' : t.replace('_', ' ')}
-                        </button>
-                    ))}
+                    <FilterButton active={filter === 'all'} onClick={() => setFilter('all')} label="Todos" />
+                    <FilterButton active={filter === 'leitura'} onClick={() => setFilter('leitura')} label="Estudos & Leitura" />
+                    <FilterButton active={filter === 'pratica'} onClick={() => setFilter('pratica')} label="Rituais & Prática" />
+                    <FilterButton active={filter === 'video'} onClick={() => setFilter('video')} label="Vídeos" />
                 </div>
 
                 {content.length === 0 ? (
@@ -122,24 +177,25 @@ const Vip: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredContent.map(item => (
-                            <div key={item.id} className="bg-[#1e1a24] border border-stone-800 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all group hover:-translate-y-1">
-                                <div className="h-48 relative overflow-hidden">
-                                    <img src={item.thumbnailUrl || 'https://picsum.photos/id/1015/400/300'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.title}/>
-                                    <div className="absolute top-3 left-3 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold uppercase text-white flex items-center gap-1">
-                                        {item.type === 'video' && <Video size={10}/>}
-                                        {item.type === 'ebook' && <FileText size={10}/>}
-                                        {item.type === 'ritual_exclusivo' && <Zap size={10}/>}
-                                        {item.type.replace('_', ' ')}
+                            <Link to={item.link} key={item.id} className="block group">
+                                <div className="bg-[#1e1a24] border border-stone-800 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all hover:-translate-y-1 h-full flex flex-col shadow-lg">
+                                    <div className="h-48 relative overflow-hidden">
+                                        <img src={item.thumbnailUrl || 'https://picsum.photos/id/1015/400/300'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.title}/>
+                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+                                        <div className="absolute top-3 left-3 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold uppercase text-white flex items-center gap-1 border border-white/10">
+                                            <ItemIcon type={item.type} />
+                                            {formatType(item.type)}
+                                        </div>
+                                    </div>
+                                    <div className="p-6 flex flex-col flex-1">
+                                        <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-purple-400 transition-colors">{item.title}</h3>
+                                        <p className="text-stone-400 text-sm mb-6 line-clamp-3 flex-1">{item.description}</p>
+                                        <div className="w-full py-3 bg-stone-800 group-hover:bg-purple-700 group-hover:text-white text-stone-300 rounded-lg font-bold transition-colors text-xs uppercase tracking-wide flex items-center justify-center gap-2">
+                                            Acessar Agora <ArrowRight size={14}/>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="p-6">
-                                    <h3 className="text-lg font-bold text-white mb-2 leading-tight">{item.title}</h3>
-                                    <p className="text-stone-400 text-sm mb-6 line-clamp-3">{item.description}</p>
-                                    <button className="w-full py-3 bg-stone-800 hover:bg-purple-700 hover:text-white text-stone-300 rounded-lg font-bold transition-colors text-sm uppercase tracking-wide">
-                                        Acessar Conteúdo
-                                    </button>
-                                </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}
@@ -293,6 +349,17 @@ const Vip: React.FC = () => {
   );
 };
 
+// --- HELPER COMPONENTS ---
+
+const FilterButton = ({ active, onClick, label }: any) => (
+    <button 
+        onClick={onClick}
+        className={`px-4 py-2 rounded-full text-sm font-bold capitalize transition-all ${active ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'bg-stone-800 text-stone-400 hover:text-white'}`}
+    >
+        {label}
+    </button>
+);
+
 const BenefitCard: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
   <div className="p-8 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 hover:border-umbanda-gold dark:hover:border-umbanda-gold transition-all group shadow-lg dark:shadow-none hover:-translate-y-2">
     <div className="w-16 h-16 bg-stone-50 dark:bg-stone-950 rounded-full flex items-center justify-center text-umbanda-gold mb-6 group-hover:scale-110 transition-transform shadow-inner border border-stone-100 dark:border-stone-800 group-hover:bg-umbanda-gold group-hover:text-stone-900">
@@ -304,5 +371,27 @@ const BenefitCard: React.FC<{ icon: React.ReactNode; title: string; description:
     </p>
   </div>
 );
+
+const ItemIcon = ({type}: {type: string}) => {
+    switch(type) {
+        case 'video': return <Video size={10}/>;
+        case 'ebook': return <FileText size={10}/>;
+        case 'ritual_exclusivo': 
+        case 'ritual_vip': return <Zap size={10}/>;
+        case 'article_vip': return <BookOpen size={10}/>;
+        default: return <Star size={10}/>;
+    }
+};
+
+const formatType = (type: string) => {
+    const map: any = {
+        'video': 'Aula em Vídeo',
+        'ebook': 'E-book Digital',
+        'ritual_exclusivo': 'Firmeza Secreta',
+        'article_vip': 'Fundamento VIP',
+        'ritual_vip': 'Ritual Avançado'
+    };
+    return map[type] || 'Conteúdo Exclusivo';
+};
 
 export default Vip;
