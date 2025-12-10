@@ -260,60 +260,64 @@ const ArticleDetail: React.FC = () => {
     <div className="bg-[#fdfcf8] dark:bg-umbanda-black min-h-screen animate-fadeIn font-sans text-stone-900 dark:text-stone-200 transition-colors duration-300">
       <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
 
-      {/* --- 1. HERO IMAGE --- */}
-      <div className="relative w-full h-[65vh] lg:h-[75vh] overflow-hidden">
+      {/* --- 1. HERO IMAGE REFACTOR --- */}
+      {/* Increased height to allow long titles to breathe. Used flexbox to anchor content to bottom with safer padding. */}
+      <div className="relative w-full min-h-[80vh] flex flex-col justify-end overflow-hidden">
         <img 
           src={article.imageUrl} 
           alt={article.title} 
-          className="w-full h-full object-cover fixed-bg-effect"
+          className="absolute inset-0 w-full h-full object-cover fixed-bg-effect z-0"
           style={{ transform: 'scale(1.05)' }} 
         />
-        {/* Adjusted Gradient for better Light Mode blending */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent dark:from-[#1a1918] dark:via-stone-900/40 dark:to-transparent"></div>
-        <div className="absolute inset-0 bg-umbanda-red/20 mix-blend-overlay"></div>
         
-        <div className="absolute bottom-0 left-0 w-full z-20 pb-12 md:pb-16 pt-32 bg-gradient-to-t from-black/90 to-transparent">
-            <div className="container mx-auto px-6 max-w-6xl">
+        {/* Scrim Superior: Garante que o menu branco fique legível no topo */}
+        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none"></div>
+
+        {/* Scrim Geral e Inferior */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent dark:from-[#1a1918] dark:via-stone-900/60 dark:to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-umbanda-red/20 mix-blend-overlay z-10 pointer-events-none"></div>
+        
+        {/* Content Container - Uses Flex to position at bottom but respects top padding */}
+        <div className="relative z-20 container mx-auto px-6 max-w-6xl pb-16 pt-32 md:pt-40">
                 
-                <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-stone-300 mb-6 uppercase tracking-widest">
-                    <Link to="/" className="hover:text-umbanda-gold">Home</Link>
-                    <span className="text-stone-600">/</span>
-                    <Link to="/artigos" className="hover:text-umbanda-gold">Blog</Link>
-                    <span className="text-stone-600">/</span>
-                    <span className="text-umbanda-gold px-2 py-1 bg-umbanda-gold/10 rounded border border-umbanda-gold/30">
-                        {article.tags?.[0] || 'Espiritualidade'}
-                    </span>
-                    {article.isVip && <span className="flex items-center gap-1 text-purple-400 border border-purple-500/50 px-2 py-1 rounded bg-purple-900/20"><Crown size={12}/> VIP</span>}
+            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-stone-300 mb-6 uppercase tracking-widest">
+                <Link to="/" className="hover:text-umbanda-gold">Home</Link>
+                <span className="text-stone-600">/</span>
+                <Link to="/artigos" className="hover:text-umbanda-gold">Blog</Link>
+                <span className="text-stone-600">/</span>
+                <span className="text-umbanda-gold px-2 py-1 bg-umbanda-gold/10 rounded border border-umbanda-gold/30">
+                    {article.tags?.[0] || 'Espiritualidade'}
+                </span>
+                {article.isVip && <span className="flex items-center gap-1 text-purple-400 border border-purple-500/50 px-2 py-1 rounded bg-purple-900/20"><Crown size={12}/> VIP</span>}
+            </div>
+            
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white leading-tight mb-6 drop-shadow-2xl max-w-5xl">
+                {article.title}
+            </h1>
+            
+            <p className="text-lg md:text-2xl text-stone-200 font-serif italic mb-8 max-w-3xl leading-relaxed border-l-4 border-umbanda-gold pl-6 opacity-90">
+                "{article.excerpt}"
+            </p>
+
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8 border-t border-white/10 pt-8">
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full border-2 border-umbanda-gold p-0.5 bg-black/20 backdrop-blur">
+                        <img src={article.authorAvatar || `https://ui-avatars.com/api/?name=${article.author}`} alt={article.author} className="w-full h-full rounded-full object-cover" />
+                    </div>
+                    <div>
+                        <p className="text-white font-bold text-lg leading-none mb-1">{article.author}</p>
+                        <p className="text-stone-400 text-xs uppercase tracking-wide mb-1">{article.authorRole || 'Zelador de Santo'}</p>
+                        <div className="flex items-center gap-4 text-stone-400 text-xs">
+                            <span className="flex items-center gap-1"><Calendar size={12} /> {article.date}</span>
+                            <span className="flex items-center gap-1"><Clock size={12} /> {readTime} min leitura</span>
+                        </div>
+                    </div>
                 </div>
-                
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white leading-tight mb-6 drop-shadow-2xl max-w-4xl">
-                    {article.title}
-                </h1>
-                
-                <p className="text-lg md:text-2xl text-stone-200 font-serif italic mb-8 max-w-3xl leading-relaxed border-l-4 border-umbanda-gold pl-6 opacity-90">
-                    "{article.excerpt}"
-                </p>
 
-                <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8 border-t border-white/10 pt-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full border-2 border-umbanda-gold p-0.5 bg-black/20 backdrop-blur">
-                            <img src={article.authorAvatar || `https://ui-avatars.com/api/?name=${article.author}`} alt={article.author} className="w-full h-full rounded-full object-cover" />
-                        </div>
-                        <div>
-                            <p className="text-white font-bold text-lg leading-none mb-1">{article.author}</p>
-                            <p className="text-stone-400 text-xs uppercase tracking-wide mb-1">{article.authorRole || 'Zelador de Santo'}</p>
-                            <div className="flex items-center gap-4 text-stone-400 text-xs">
-                                <span className="flex items-center gap-1"><Calendar size={12} /> {article.date}</span>
-                                <span className="flex items-center gap-1"><Clock size={12} /> {readTime} min leitura</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                        <button onClick={() => handleShare('whatsapp')} className="p-3 bg-white/5 hover:bg-[#25D366] text-white rounded-full transition-all border border-white/10 hover:border-transparent"><MessageCircle size={20}/></button>
-                        <button onClick={() => handleShare('facebook')} className="p-3 bg-white/5 hover:bg-[#1877F2] text-white rounded-full transition-all border border-white/10 hover:border-transparent"><Facebook size={20}/></button>
-                        <button onClick={() => handleShare('copy')} className="p-3 bg-white/5 hover:bg-umbanda-gold text-white rounded-full transition-all border border-white/10 hover:border-transparent"><LinkIcon size={20}/></button>
-                    </div>
+                <div className="flex gap-2">
+                    <button onClick={() => handleShare('whatsapp')} className="p-3 bg-white/5 hover:bg-[#25D366] text-white rounded-full transition-all border border-white/10 hover:border-transparent"><MessageCircle size={20}/></button>
+                    <button onClick={() => handleShare('facebook')} className="p-3 bg-white/5 hover:bg-[#1877F2] text-white rounded-full transition-all border border-white/10 hover:border-transparent"><Facebook size={20}/></button>
+                    <button onClick={() => handleShare('copy')} className="p-3 bg-white/5 hover:bg-umbanda-gold text-white rounded-full transition-all border border-white/10 hover:border-transparent"><LinkIcon size={20}/></button>
                 </div>
             </div>
         </div>
@@ -457,7 +461,7 @@ const ArticleDetail: React.FC = () => {
                                 className="w-full bg-transparent text-stone-900 dark:text-white focus:outline-none min-h-[80px] text-lg resize-none placeholder-stone-400"
                             />
                         </div>
-                        <div className="bg-[#fdfcf8] dark:bg-stone-950 p-3 rounded-b-xl flex flex-col sm:flex-row gap-3 items-center border-t border-stone-100 dark:border-stone-800">
+                        <div className="bg-[#fdfcf8] dark:bg-stone-900 p-3 rounded-b-xl flex flex-col sm:flex-row gap-3 items-center border-t border-stone-100 dark:border-stone-800">
                             <input value={commentName} onChange={e => setCommentName(e.target.value)} placeholder="Seu Nome (Obrigatório)" className="flex-1 bg-white dark:bg-transparent border border-stone-300 dark:border-stone-800 rounded-md py-2 px-3 text-stone-900 dark:text-white focus:outline-none focus:border-umbanda-gold text-sm shadow-sm dark:shadow-none"/>
                             <button type="submit" disabled={isSubmittingComment} className="bg-umbanda-gold hover:bg-yellow-600 text-white font-bold px-6 py-2 rounded-lg transition-colors disabled:opacity-50 text-sm flex items-center gap-2 whitespace-nowrap shadow-md">
                                 {isSubmittingComment ? <Loader2 className="animate-spin" size={16}/> : <Send size={16}/>} Publicar

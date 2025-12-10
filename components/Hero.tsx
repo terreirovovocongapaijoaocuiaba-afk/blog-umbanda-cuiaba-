@@ -13,6 +13,9 @@ const Hero: React.FC = () => {
           alt="Altar de Umbanda Iluminado" 
           className="w-full h-full object-cover"
         />
+        {/* Scrim Superior para garantir legibilidade do menu */}
+        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/80 to-transparent z-10"></div>
+
         {/* Dark Overlay for Text Readability - Adjusted to be lighter so image is visible */}
         <div className="absolute inset-0 bg-black/50"></div>
         {/* Gradient at bottom for smooth transition to content */}

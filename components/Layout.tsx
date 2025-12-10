@@ -81,7 +81,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (isScrolled) {
           return "bg-[#fdfcf8]/95 dark:bg-umbanda-black/95 shadow-md py-3 text-stone-900 dark:text-white backdrop-blur-md";
       }
-      return "bg-transparent py-6 text-white";
+      return "bg-gradient-to-b from-black/60 to-transparent py-6 text-white";
   };
 
   // Helper to determine if we are in "Dark Text" mode (solid background) or "Light Text" mode (transparent background)
@@ -94,15 +94,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         className={`fixed w-full z-50 transition-all duration-300 ${getNavClasses()}`}
       >
         <div className="container mx-auto px-6 flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2 group">
-            <Flame className="w-8 h-8 text-umbanda-gold group-hover:text-umbanda-redBright transition-colors duration-300" />
-            <span className={`text-2xl font-serif font-bold tracking-wider ${!isSolidNav ? 'text-white' : 'text-stone-900 dark:text-umbanda-offwhite'}`}>
+          <Link to="/" className="flex items-center space-x-2 group flex-shrink-0">
+            <Flame className="w-6 h-6 md:w-8 md:h-8 text-umbanda-gold group-hover:text-umbanda-redBright transition-colors duration-300" />
+            <span className={`text-xl md:text-2xl font-serif font-bold tracking-wider ${!isSolidNav ? 'text-white' : 'text-stone-900 dark:text-umbanda-offwhite'}`}>
               {SITE_NAME.toUpperCase()}
             </span>
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden lg:flex items-center space-x-6 ml-auto">
             <NavLink to="/" isSolid={isSolidNav}>Início</NavLink>
             <NavLink to="/rituais" isSolid={isSolidNav}>Rituais</NavLink>
             <NavLink to="/artigos" isSolid={isSolidNav}>Artigos</NavLink>
@@ -134,7 +134,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ) : (
                 <Link 
                   to="/vip" 
-                  className="px-6 py-2 bg-gradient-to-r from-umbanda-red to-red-800 text-white font-bold rounded-full border border-umbanda-gold/30 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all transform hover:-translate-y-0.5 text-sm"
+                  className="px-6 py-2 bg-gradient-to-r from-umbanda-red to-red-800 text-white font-bold rounded-full border border-umbanda-gold/30 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all transform hover:-translate-y-0.5 text-sm whitespace-nowrap"
                 >
                   Clube VIP
                 </Link>
@@ -142,7 +142,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center gap-4">
+          <div className="lg:hidden flex items-center gap-4">
             <div className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'}>
                 <NotificationBell />
             </div>
@@ -163,7 +163,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-umbanda-black border-t border-stone-200 dark:border-umbanda-red/30 shadow-2xl flex flex-col p-6 space-y-4 animate-fadeIn">
+          <div className="lg:hidden absolute top-full left-0 w-full bg-white dark:bg-umbanda-black border-t border-stone-200 dark:border-umbanda-red/30 shadow-2xl flex flex-col p-6 space-y-4 animate-fadeIn">
             {isPremium && (
                 <div className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold rounded-lg text-center flex items-center justify-center gap-2">
                     <Crown size={16} className="fill-white"/> VOCÊ É MEMBRO VIP
