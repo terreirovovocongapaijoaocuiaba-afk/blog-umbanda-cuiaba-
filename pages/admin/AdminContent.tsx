@@ -393,7 +393,8 @@ const AdminContent: React.FC = () => {
       <div className="flex flex-wrap gap-2 bg-stone-900 p-2 rounded-lg mb-6 border border-stone-800">
         <TabButton id="articles" label="Artigos do Blog" active={activeTab} set={setActiveTab} />
         <TabButton id="rituals" label="Rituais" active={activeTab} set={setActiveTab} />
-        <TabButton id="entities" label="Entidades" active={activeTab} set={setActiveTab} />
+        {/* MUDANÇA: Aba renomeada para "Linhas de Trabalho" */}
+        <TabButton id="entities" label="Linhas de Trabalho" active={activeTab} set={setActiveTab} />
         <TabButton id="vip" label="Clube VIP" active={activeTab} set={setActiveTab} />
       </div>
 
@@ -542,7 +543,7 @@ const AdminContent: React.FC = () => {
           <form onSubmit={handleSave} className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-stone-900 border-l border-stone-800 shadow-2xl z-50 overflow-y-auto">
             <div className="p-6 border-b border-stone-800 flex justify-between items-center bg-stone-950 sticky top-0 z-10">
               <h2 className="text-xl font-serif font-bold text-white capitalize">
-                {editingItem?.id ? 'Editar' : 'Criar'} {activeTab === 'vip' ? 'Conteúdo VIP' : activeTab === 'articles' ? 'Artigo' : activeTab === 'rituals' ? 'Ritual' : 'Entidade'}
+                {editingItem?.id ? 'Editar' : 'Criar'} {activeTab === 'vip' ? 'Conteúdo VIP' : activeTab === 'articles' ? 'Artigo' : activeTab === 'rituals' ? 'Ritual' : 'Linha de Trabalho'}
               </h2>
               <button type="button" onClick={() => setIsEditorOpen(false)} className="text-stone-500 hover:text-white"><X size={24} /></button>
             </div>
@@ -590,14 +591,14 @@ const AdminContent: React.FC = () => {
               {/* Entities Editor */}
               {activeTab === 'entities' && (
                 <>
-                  <Input label="Nome da Entidade" name="name" required defaultValue={editingItem?.name} />
+                  <Input label="Nome da Entidade / Guia" name="name" required defaultValue={editingItem?.name} />
                   <div className="grid grid-cols-2 gap-4">
-                    <Select label="Linha" name="line" defaultValue={editingItem?.line} options={['Esquerda', 'Direita', 'Almas', 'Matas', 'Crianças']} />
+                    <Select label="Linha de Trabalho" name="line" defaultValue={editingItem?.line} options={['Esquerda', 'Direita', 'Almas', 'Matas', 'Crianças']} />
                     <Select label="Símbolo" name="symbol" defaultValue={editingItem?.symbol} options={['Tridente', 'Taça', 'Flecha', 'Cachimbo', 'Espada', 'Ancora']} />
                   </div>
                   <Input label="Saudação" name="greeting" required defaultValue={editingItem?.greeting} />
-                  <Input label="Cores" name="color" defaultValue={editingItem?.color} />
-                  <TextArea label="Descrição" name="description" rows={6} required defaultValue={editingItem?.description} />
+                  <Input label="Cores da Linha" name="color" defaultValue={editingItem?.color} />
+                  <TextArea label="Descrição / História" name="description" rows={6} required defaultValue={editingItem?.description} />
                 </>
               )}
 
