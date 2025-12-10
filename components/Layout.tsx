@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock, Sun, Moon } from 'lucide-react';
+import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock, Sun, Moon, Sparkles, ShoppingBag } from 'lucide-react';
 import { SITE_NAME } from '../constants';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -16,6 +16,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isHeroPage = 
     location.pathname === '/' || 
     location.pathname === '/vip' || 
+    location.pathname === '/oraculo' ||
+    location.pathname.startsWith('/servicos') ||
     (location.pathname.startsWith('/artigos/') && location.pathname.split('/').length > 2);
 
   useEffect(() => {
@@ -94,11 +96,16 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             <NavLink to="/" isSolid={isSolidNav}>Início</NavLink>
             <NavLink to="/rituais" isSolid={isSolidNav}>Rituais</NavLink>
             <NavLink to="/artigos" isSolid={isSolidNav}>Artigos</NavLink>
-            <NavLink to="/sobre" isSolid={isSolidNav}>Sobre a Casa</NavLink>
+            
+            <Link to="/servicos" className={`flex items-center gap-1 font-bold text-sm tracking-wide transition-colors px-3 py-1 rounded-full border ${isSolidNav ? 'text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-400 dark:hover:bg-purple-900/20' : 'text-white border-white/50 hover:bg-white/10'}`}>
+                <ShoppingBag size={14}/> Loja Espiritual
+            </Link>
+
+            <NavLink to="/sobre" isSolid={isSolidNav}>Sobre</NavLink>
             <NavLink to="/contato" isSolid={isSolidNav}>Contato</NavLink>
             
             <button 
@@ -138,6 +145,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-umbanda-black border-t border-stone-200 dark:border-umbanda-red/30 shadow-2xl flex flex-col p-6 space-y-4 animate-fadeIn">
             <MobileNavLink to="/">Início</MobileNavLink>
+            <MobileNavLink to="/servicos"><span className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold"><ShoppingBag size={16}/> Serviços & Consultas</span></MobileNavLink>
             <MobileNavLink to="/rituais">Rituais</MobileNavLink>
             <MobileNavLink to="/artigos">Artigos</MobileNavLink>
             <MobileNavLink to="/sobre">Sobre a Casa</MobileNavLink>
@@ -184,7 +192,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <ul className="space-y-2 text-sm text-stone-600 dark:text-stone-300">
                 <li><Link to="/rituais" className="hover:text-umbanda-redBright transition-colors">Rituais & Firmezas</Link></li>
                 <li><Link to="/artigos" className="hover:text-umbanda-redBright transition-colors">Blog Espiritual</Link></li>
-                <li><Link to="/sobre" className="hover:text-umbanda-redBright transition-colors">Nossa História</Link></li>
+                <li><Link to="/servicos" className="hover:text-umbanda-redBright transition-colors">Loja Espiritual</Link></li>
                 <li><Link to="/vip" className="hover:text-umbanda-redBright transition-colors">Área de Membros</Link></li>
               </ul>
             </div>

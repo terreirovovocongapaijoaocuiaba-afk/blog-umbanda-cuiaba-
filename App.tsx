@@ -9,6 +9,14 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Vip from './pages/Vip';
+import Oracle from './pages/Oracle'; 
+
+// New Autonomous Services
+import ServicesHub from './pages/ServicesHub';
+import DreamInterpreter from './pages/services/DreamInterpreter';
+import HerbalTherapist from './pages/services/HerbalTherapist';
+import OrixaCalculator from './pages/services/OrixaCalculator';
+import CandleReader from './pages/services/CandleReader';
 
 // Admin Imports
 import AdminLogin from './pages/admin/AdminLogin';
@@ -40,6 +48,14 @@ const App: React.FC = () => {
           <Route path="/sobre" element={<About />} />
           <Route path="/vip" element={<Vip />} />
           <Route path="/politica" element={<PrivacyPolicy />} />
+          
+          {/* Digital Products (High Income Systems) */}
+          <Route path="/servicos" element={<ServicesHub />} />
+          <Route path="/oraculo" element={<Oracle />} />
+          <Route path="/servicos/sonhos" element={<DreamInterpreter />} />
+          <Route path="/servicos/banhos" element={<HerbalTherapist />} />
+          <Route path="/servicos/orixa" element={<OrixaCalculator />} />
+          <Route path="/servicos/velas" element={<CandleReader />} />
         </Route>
 
         {/* Admin Routes */}
