@@ -12,6 +12,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const location = useLocation();
 
+  // Detect which pages have a Hero Image to allow transparent header
+  const isHeroPage = 
+    location.pathname === '/' || 
+    location.pathname === '/vip' || 
+    (location.pathname.startsWith('/artigos/') && location.pathname.split('/').length > 2);
+
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
@@ -57,39 +63,50 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     fetchSocial();
   }, []);
 
+  // Calculate Nav Classes based on page type and scroll state
+  const getNavClasses = () => {
+      // If NOT a hero page, always solid background to ensure readability
+      if (!isHeroPage) {
+          return "bg-[#fdfcf8]/95 dark:bg-umbanda-black/95 shadow-md py-3 text-stone-900 dark:text-white backdrop-blur-md";
+      }
+      // If IS a hero page, transparent at top, solid when scrolled
+      if (isScrolled) {
+          return "bg-[#fdfcf8]/95 dark:bg-umbanda-black/95 shadow-md py-3 text-stone-900 dark:text-white backdrop-blur-md";
+      }
+      return "bg-transparent py-6 text-white";
+  };
+
+  // Helper to determine if we are in "Dark Text" mode (solid background) or "Light Text" mode (transparent background)
+  const isSolidNav = !isHeroPage || isScrolled;
+
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-umbanda-black text-stone-900 dark:text-umbanda-white font-sans selection:bg-umbanda-red selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-[#fdfcf8] dark:bg-umbanda-black text-stone-900 dark:text-umbanda-white font-sans selection:bg-umbanda-red selection:text-white transition-colors duration-300">
       {/* Navigation */}
       <nav 
-        className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-white/95 dark:bg-umbanda-black/95 shadow-lg shadow-stone-200 dark:shadow-umbanda-red/10 py-3 text-stone-900 dark:text-white' 
-            : 'bg-transparent py-6 text-white' 
-          /* Note: When transparent (top), text is always white because of Hero image. When scrolled, it adapts. */
-        }`}
+        className={`fixed w-full z-50 transition-all duration-300 ${getNavClasses()}`}
       >
         <div className="container mx-auto px-6 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2 group">
             <Flame className="w-8 h-8 text-umbanda-gold group-hover:text-umbanda-redBright transition-colors duration-300" />
-            <span className={`text-2xl font-serif font-bold tracking-wider ${!isScrolled ? 'text-white' : 'text-stone-900 dark:text-umbanda-offwhite'}`}>
+            <span className={`text-2xl font-serif font-bold tracking-wider ${!isSolidNav ? 'text-white' : 'text-stone-900 dark:text-umbanda-offwhite'}`}>
               {SITE_NAME.toUpperCase()}
             </span>
           </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <NavLink to="/" isScrolled={isScrolled}>Início</NavLink>
-            <NavLink to="/rituais" isScrolled={isScrolled}>Rituais</NavLink>
-            <NavLink to="/artigos" isScrolled={isScrolled}>Artigos</NavLink>
-            <NavLink to="/sobre" isScrolled={isScrolled}>Sobre a Casa</NavLink>
-            <NavLink to="/contato" isScrolled={isScrolled}>Contato</NavLink>
+            <NavLink to="/" isSolid={isSolidNav}>Início</NavLink>
+            <NavLink to="/rituais" isSolid={isSolidNav}>Rituais</NavLink>
+            <NavLink to="/artigos" isSolid={isSolidNav}>Artigos</NavLink>
+            <NavLink to="/sobre" isSolid={isSolidNav}>Sobre a Casa</NavLink>
+            <NavLink to="/contato" isSolid={isSolidNav}>Contato</NavLink>
             
             <button 
               onClick={toggleTheme} 
-              className={`p-2 rounded-full transition-colors ${isScrolled ? 'hover:bg-stone-200 dark:hover:bg-stone-800' : 'hover:bg-white/20'}`}
+              className={`p-2 rounded-full transition-colors ${isSolidNav ? 'hover:bg-stone-200 dark:hover:bg-stone-800' : 'hover:bg-white/20'}`}
               title={theme === 'dark' ? 'Mudar para Claro' : 'Mudar para Escuro'}
             >
-              {theme === 'dark' ? <Sun size={20} className={isScrolled ? 'text-stone-900 dark:text-white' : 'text-white'} /> : <Moon size={20} className={isScrolled ? 'text-stone-900 dark:text-white' : 'text-white'} />}
+              {theme === 'dark' ? <Sun size={20} className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'} /> : <Moon size={20} className={isSolidNav ? 'text-stone-900 dark:text-white' : 'text-white'} />}
             </button>
 
             <Link 
@@ -104,12 +121,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="md:hidden flex items-center gap-4">
             <button 
                 onClick={toggleTheme} 
-                className="text-umbanda-gold hover:text-white"
+                className={isSolidNav ? "text-umbanda-gold hover:text-stone-900 dark:hover:text-white" : "text-umbanda-gold hover:text-white"}
             >
                 {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
             </button>
             <button 
-              className="text-umbanda-gold hover:text-white"
+              className={isSolidNav ? "text-umbanda-gold hover:text-stone-900 dark:hover:text-white" : "text-umbanda-gold hover:text-white"}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -206,11 +223,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const NavLink: React.FC<{ to: string; children: React.ReactNode; isScrolled: boolean }> = ({ to, children, isScrolled }) => (
+const NavLink: React.FC<{ to: string; children: React.ReactNode; isSolid: boolean }> = ({ to, children, isSolid }) => (
   <Link 
     to={to} 
     className={`relative text-sm font-medium tracking-wide transition-colors duration-300 after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-umbanda-gold after:left-0 after:-bottom-1 after:transition-all hover:after:w-full
-      ${isScrolled ? 'text-stone-600 hover:text-umbanda-red dark:text-stone-300 dark:hover:text-umbanda-gold' : 'text-stone-200 hover:text-white'}
+      ${isSolid ? 'text-stone-600 hover:text-umbanda-red dark:text-stone-300 dark:hover:text-umbanda-gold' : 'text-stone-200 hover:text-white'}
     `}
   >
     {children}

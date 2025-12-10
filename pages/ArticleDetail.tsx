@@ -249,7 +249,6 @@ const ArticleDetail: React.FC = () => {
   };
 
   return (
-    // CHANGE: BG Color is now a warm off-white in light mode instead of stone-50
     <div className="bg-[#fdfcf8] dark:bg-umbanda-black min-h-screen animate-fadeIn font-sans text-stone-900 dark:text-stone-200 transition-colors duration-300">
       <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
 
@@ -261,10 +260,11 @@ const ArticleDetail: React.FC = () => {
           className="w-full h-full object-cover fixed-bg-effect"
           style={{ transform: 'scale(1.05)' }} 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1918] via-stone-900/40 to-transparent"></div>
+        {/* Adjusted Gradient for better Light Mode blending */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent dark:from-[#1a1918] dark:via-stone-900/40 dark:to-transparent"></div>
         <div className="absolute inset-0 bg-umbanda-red/20 mix-blend-overlay"></div>
         
-        <div className="absolute bottom-0 left-0 w-full z-20 pb-12 md:pb-16 pt-32 bg-gradient-to-t from-[#1a1918] to-transparent">
+        <div className="absolute bottom-0 left-0 w-full z-20 pb-12 md:pb-16 pt-32 bg-gradient-to-t from-black/90 to-transparent">
             <div className="container mx-auto px-6 max-w-6xl">
                 
                 <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-stone-300 mb-6 uppercase tracking-widest">
@@ -317,7 +317,6 @@ const ArticleDetail: React.FC = () => {
             {/* 6. TOC SIDEBAR */}
             <aside className="hidden lg:block lg:col-span-3 space-y-8">
                 <div className="sticky top-24 space-y-8">
-                    {/* CHANGE: White background with shadow for better pop in light mode */}
                     <div className="bg-white dark:bg-stone-900/80 backdrop-blur rounded-xl p-6 border border-stone-200 dark:border-stone-800 shadow-lg dark:shadow-xl">
                         <h4 className="font-bold text-stone-900 dark:text-white mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
                             <List size={14} className="text-umbanda-gold"/> Neste Artigo
