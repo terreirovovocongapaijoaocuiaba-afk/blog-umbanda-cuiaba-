@@ -1,17 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock, Sun, Moon, Sparkles, ShoppingBag } from 'lucide-react';
+import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock, Sun, Moon, Sparkles, ShoppingBag, Crown } from 'lucide-react';
 import { SITE_NAME } from '../constants';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { NotificationBell } from './NotificationCenter';
+import { isUserPremium } from '../lib/usageUtils';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [socialLinks, setSocialLinks] = useState<any>({});
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [isPremium, setIsPremium] = useState(false);
   const location = useLocation();
 
   // Detect which pages have a Hero Image to allow transparent header
@@ -25,12 +27,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
+    setIsPremium(isUserPremium()); // Check premium status on mount
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setIsMobileMenuOpen(false);
+    setIsPremium(isUserPremium()); // Re-check on nav change
   }, [location]);
 
   // Theme Logic
@@ -123,12 +127,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <NotificationBell />
             </div>
 
-            <Link 
-              to="/vip" 
-              className="px-6 py-2 bg-gradient-to-r from-umbanda-red to-red-800 text-white font-bold rounded-full border border-umbanda-gold/30 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all transform hover:-translate-y-0.5 text-sm"
-            >
-              Clube VIP
-            </Link>
+            {isPremium ? (
+                <div className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold rounded-full border border-yellow-400/50 shadow-lg shadow-yellow-500/20 text-xs flex items-center gap-2 animate-fadeIn">
+                    <Crown size={14} className="text-white fill-white"/> MEMBRO VIP
+                </div>
+            ) : (
+                <Link 
+                  to="/vip" 
+                  className="px-6 py-2 bg-gradient-to-r from-umbanda-red to-red-800 text-white font-bold rounded-full border border-umbanda-gold/30 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all transform hover:-translate-y-0.5 text-sm"
+                >
+                  Clube VIP
+                </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -154,18 +164,25 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-umbanda-black border-t border-stone-200 dark:border-umbanda-red/30 shadow-2xl flex flex-col p-6 space-y-4 animate-fadeIn">
+            {isPremium && (
+                <div className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold rounded-lg text-center flex items-center justify-center gap-2">
+                    <Crown size={16} className="fill-white"/> VOCÊ É MEMBRO VIP
+                </div>
+            )}
             <MobileNavLink to="/">Início</MobileNavLink>
             <MobileNavLink to="/servicos"><span className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold"><ShoppingBag size={16}/> Serviços & Consultas</span></MobileNavLink>
             <MobileNavLink to="/rituais">Rituais</MobileNavLink>
             <MobileNavLink to="/artigos">Artigos</MobileNavLink>
             <MobileNavLink to="/sobre">Sobre a Casa</MobileNavLink>
             <MobileNavLink to="/contato">Contato</MobileNavLink>
-            <Link 
-              to="/vip" 
-              className="text-center w-full py-3 mt-4 bg-umbanda-red text-white font-bold rounded-lg"
-            >
-              Acessar Clube VIP
-            </Link>
+            {!isPremium && (
+                <Link 
+                  to="/vip" 
+                  className="text-center w-full py-3 mt-4 bg-umbanda-red text-white font-bold rounded-lg"
+                >
+                  Acessar Clube VIP
+                </Link>
+            )}
           </div>
         )}
       </nav>

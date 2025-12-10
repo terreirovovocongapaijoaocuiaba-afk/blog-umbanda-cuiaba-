@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../lib/firebase';
@@ -5,15 +6,20 @@ import { doc, getDoc, collection, query, limit, getDocs, updateDoc, increment, a
 import { Article, Comment } from '../types';
 import { 
   Loader2, Calendar, Clock, BookOpen, Heart, Send, PlayCircle, PauseCircle, Star, ChevronDown, ChevronUp,
-  MessageSquare, Volume2, List, Sparkles, Lock, Crown, Share2, Facebook, Linkedin, Link as LinkIcon, MessageCircle, ArrowRight
+  MessageSquare, Volume2, List, Sparkles, Lock, Crown, Share2, Facebook, Linkedin, Link as LinkIcon, MessageCircle, ArrowRight, Unlock
 } from 'lucide-react';
 import { SITE_NAME } from '../constants';
+import { isUserPremium } from '../lib/usageUtils';
 
 // --- VIP GATE COMPONENT ---
 const VipGate: React.FC<{ children: React.ReactNode, isVip: boolean }> = ({ children, isVip }) => {
-    const isUserSubscriber = false; 
+    const [isSubscriber, setIsSubscriber] = useState(false);
 
-    if (!isVip || isUserSubscriber) return <>{children}</>;
+    useEffect(() => {
+        setIsSubscriber(isUserPremium());
+    }, []);
+
+    if (!isVip || isSubscriber) return <div className="animate-fadeIn">{children}</div>;
 
     return (
         <div className="relative">
@@ -337,15 +343,17 @@ const ArticleDetail: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="bg-gradient-to-br from-stone-900 to-black p-6 rounded-xl border border-stone-800 text-center relative overflow-hidden shadow-xl">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-umbanda-red/20 blur-2xl rounded-full"></div>
-                        <Crown size={32} className="text-umbanda-gold mx-auto mb-3"/>
-                        <h5 className="text-white font-bold font-serif mb-2">Clube VIP</h5>
-                        <p className="text-stone-400 text-xs mb-4">Tenha acesso a rituais avançados e ebooks mensais.</p>
-                        <Link to="/vip" className="block w-full py-2 bg-white text-black font-bold text-xs uppercase rounded hover:bg-stone-200 transition-colors">
-                            Conhecer
-                        </Link>
-                    </div>
+                    {!isUserPremium() && (
+                        <div className="bg-gradient-to-br from-stone-900 to-black p-6 rounded-xl border border-stone-800 text-center relative overflow-hidden shadow-xl">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-umbanda-red/20 blur-2xl rounded-full"></div>
+                            <Crown size={32} className="text-umbanda-gold mx-auto mb-3"/>
+                            <h5 className="text-white font-bold font-serif mb-2">Clube VIP</h5>
+                            <p className="text-stone-400 text-xs mb-4">Tenha acesso a rituais avançados e ebooks mensais.</p>
+                            <Link to="/vip" className="block w-full py-2 bg-white text-black font-bold text-xs uppercase rounded hover:bg-stone-200 transition-colors">
+                                Conhecer
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </aside>
 
@@ -371,24 +379,26 @@ const ArticleDetail: React.FC = () => {
                     </article>
 
                     {/* CTA FINAL */}
-                    <div className="mt-16 mb-12 p-10 rounded-2xl bg-gradient-to-r from-umbanda-red to-red-900 text-white text-center shadow-2xl shadow-red-900/20 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-20"></div>
-                        <div className="relative z-10">
-                            <Sparkles size={40} className="mx-auto mb-4 text-yellow-300" />
-                            <h3 className="text-3xl font-serif font-bold mb-4">Receba Orientação Espiritual</h3>
-                            <p className="text-red-100 text-lg mb-8 max-w-lg mx-auto">
-                                Não caminhe sozinho. Entre para nossa corrente e receba conteúdos exclusivos e rituais de proteção toda semana.
-                            </p>
-                            <div className="flex flex-col sm:flex-row justify-center gap-4">
-                                <Link to="/vip" className="px-8 py-3 bg-white text-red-900 font-bold rounded-lg hover:bg-stone-100 transition-colors shadow-lg">
-                                    Entrar para Clube VIP
-                                </Link>
-                                <Link to="/contato" className="px-8 py-3 bg-red-950/50 border border-red-800 text-white font-bold rounded-lg hover:bg-red-900 transition-colors">
-                                    Agendar Consulta
-                                </Link>
+                    {!isUserPremium() && (
+                        <div className="mt-16 mb-12 p-10 rounded-2xl bg-gradient-to-r from-umbanda-red to-red-900 text-white text-center shadow-2xl shadow-red-900/20 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-20"></div>
+                            <div className="relative z-10">
+                                <Sparkles size={40} className="mx-auto mb-4 text-yellow-300" />
+                                <h3 className="text-3xl font-serif font-bold mb-4">Receba Orientação Espiritual</h3>
+                                <p className="text-red-100 text-lg mb-8 max-w-lg mx-auto">
+                                    Não caminhe sozinho. Entre para nossa corrente e receba conteúdos exclusivos e rituais de proteção toda semana.
+                                </p>
+                                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                                    <Link to="/vip" className="px-8 py-3 bg-white text-red-900 font-bold rounded-lg hover:bg-stone-100 transition-colors shadow-lg">
+                                        Entrar para Clube VIP
+                                    </Link>
+                                    <Link to="/contato" className="px-8 py-3 bg-red-950/50 border border-red-800 text-white font-bold rounded-lg hover:bg-red-900 transition-colors">
+                                        Agendar Consulta
+                                    </Link>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </VipGate>
 
                 {/* NOTA + REPUTAÇÃO */}
@@ -414,7 +424,7 @@ const ArticleDetail: React.FC = () => {
                     </div>
                 </div>
 
-                {/* SEÇÃO AUTOR - Style Refresh */}
+                {/* SEÇÃO AUTOR */}
                 <div className="bg-white dark:bg-stone-900/50 rounded-2xl p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left border border-stone-200 dark:border-stone-800 shadow-sm">
                     <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-stone-100 dark:border-stone-800 shadow-lg flex-shrink-0">
                          <img src={article.authorAvatar || `https://ui-avatars.com/api/?name=${article.author}`} alt={article.author} className="w-full h-full object-cover"/>
@@ -437,7 +447,6 @@ const ArticleDetail: React.FC = () => {
                         <MessageSquare className="text-umbanda-gold" /> A Voz da Corrente <span className="text-sm font-sans font-normal text-stone-500">({comments.length})</span>
                     </h3>
                     
-                    {/* Updated Form Design for Light Mode */}
                     <form onSubmit={handleCommentSubmit} className="mb-10 bg-white dark:bg-stone-900 p-1 rounded-xl border border-stone-200 dark:border-stone-800 shadow-lg dark:shadow-sm focus-within:ring-2 ring-umbanda-gold/50 transition-all">
                         <div className="p-4">
                             <textarea 
@@ -511,7 +520,7 @@ const ArticleDetail: React.FC = () => {
         </div>
       </div>
       
-      <div className="bg-[#fdfcf8] dark:bg-stone-950 py-16 border-t border-stone-200 dark:border-stone-900 mt-12">
+      <div className="bg-[#fdfcf8] dark:bg-stone-900 py-16 border-t border-stone-200 dark:border-stone-900 mt-12">
           <div className="container mx-auto px-6 max-w-7xl">
               <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-white mb-8 flex items-center gap-2">
                   <BookOpen className="text-umbanda-gold"/> Continue Estudando

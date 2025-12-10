@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppNotification } from '../types';
 import { db } from './firebase';
-import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, updateDoc, doc, writeBatch, where } from 'firebase/firestore';
+import { getDeviceId } from './usageUtils';
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -18,13 +19,17 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  // REAL-TIME LISTENER: Escuta a coleção 'notifications' do Firestore
+  // REAL-TIME LISTENER SEGMENTADO
   useEffect(() => {
-    // Em um app real com Auth, filtraríamos por where('userId', '==', currentUser.uid)
-    // Aqui, ouvimos as últimas 50 notificações globais para demonstração do sistema
+    const deviceId = getDeviceId();
+    
+    // Consulta Filtra: Notificações Globais OU Notificações para este Device ID
     const q = query(
         collection(db, 'notifications'), 
-        orderBy('timestamp', 'desc'), 
+        where('targetId', 'in', ['global', deviceId]),
+        // Nota: Firestore requer um índice composto para usar 'in' + 'orderBy'.
+        // Para evitar erros em modo de dev sem acesso ao console do firebase para criar índices,
+        // vamos ordenar no cliente (javascript) após receber os dados.
         limit(50)
     );
 
@@ -34,12 +39,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         ...doc.data()
       })) as AppNotification[];
       
+      // Ordenação no Cliente (descendente por data)
+      data.sort((a, b) => b.timestamp - a.timestamp);
+
       setNotifications(data);
       
-      // Tocar som apenas se houver uma nova notificação não lida no topo criada nos últimos 2 segundos
+      // Tocar som apenas se houver uma nova notificação não lida RECENTE (últimos 5s)
       if (data.length > 0 && !data[0].read) {
           const now = Date.now();
-          if (now - data[0].timestamp < 5000) { // 5 segundos de tolerância
+          if (now - data[0].timestamp < 5000) {
               const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); 
               audio.volume = 0.2;
               audio.play().catch(() => {});
@@ -50,11 +58,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => unsubscribe();
   }, []);
 
-  // Função auxiliar para componentes que precisam adicionar (embora o AdminSimulator use firestore direto)
-  // Mantida para compatibilidade interna se necessário
+  // Função auxiliar wrapper (não usada diretamente para persistência real, mas mantida para compatibilidade)
   const addNotification = async (n: Omit<AppNotification, 'id' | 'read' | 'timestamp'>) => {
-      // Esta função agora é apenas um wrapper, a lógica real de inserção deve ser feita via Firestore
-      // Se chamada localmente, não faz nada pois o listener cuidará da atualização
       console.warn("Use firestore addDoc directly instead of context addNotification for persistency");
   };
 
@@ -83,8 +88,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const clearAll = async () => {
-    // Cuidado: Isso deletaria do banco real. 
-    // Para UX, talvez apenas marcar como "arquivada", mas aqui vamos deletar para limpar o demo.
+    // Cuidado: Isso deleta do banco real.
     try {
         const batch = writeBatch(db);
         notifications.forEach(n => {

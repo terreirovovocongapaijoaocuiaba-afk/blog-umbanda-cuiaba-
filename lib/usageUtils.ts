@@ -2,6 +2,17 @@
 export const USAGE_KEY = 'umbanda_cuiaba_free_usage';
 export const PREMIUM_KEY = 'umbanda_cuiaba_is_premium'; // Simulação local de estado premium
 
+// Recupera ou cria um ID único para este navegador/dispositivo
+// Isso permite simular um "usuário logado" sem precisar de auth complexo no frontend público
+export const getDeviceId = (): string => {
+  let id = localStorage.getItem('umbanda_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('umbanda_device_id', id);
+  }
+  return id;
+};
+
 // Verifica se o usuário é Premium (Local ou via Auth no futuro)
 export const isUserPremium = (): boolean => {
   return localStorage.getItem(PREMIUM_KEY) === 'true';

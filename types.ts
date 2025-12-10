@@ -102,6 +102,7 @@ export interface AnalyticsMetric {
 
 export interface AppNotification {
   id: string;
+  targetId?: string; // 'global' ou ID do usuário/device
   type: 'payment' | 'system' | 'insight' | 'offer';
   title: string;
   message: string;
