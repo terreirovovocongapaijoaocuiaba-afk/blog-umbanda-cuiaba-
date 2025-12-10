@@ -37,6 +37,8 @@ export interface Article {
   metaTitle?: string; // SEO
   metaDescription?: string; // SEO
   faqs?: { question: string; answer: string }[];
+  audioUrl?: string; // Mídia Interativa
+  audioDuration?: string;
 }
 
 export interface Comment {
