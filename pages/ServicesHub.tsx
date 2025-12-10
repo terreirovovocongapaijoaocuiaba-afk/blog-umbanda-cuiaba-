@@ -1,10 +1,13 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Moon, Sun, Flame, Brain, ArrowRight } from 'lucide-react';
+import TrustBadges from '../components/TrustBadges';
+import { PricingComparison, FooterCTA } from '../components/ConversionSections';
 
 const ServicesHub: React.FC = () => {
   return (
-    <div className="bg-[#1a1520] min-h-screen text-stone-200 animate-fadeIn font-sans pb-20">
+    <div className="bg-[#1a1520] min-h-screen text-stone-200 animate-fadeIn font-sans pb-0">
        {/* Hero Section */}
        <div className="relative pt-32 pb-16 text-center px-6 bg-gradient-to-b from-purple-900/30 to-transparent">
           <div className="inline-block p-3 rounded-full bg-purple-900/40 border border-purple-500/30 mb-6 backdrop-blur">
@@ -13,13 +16,14 @@ const ServicesHub: React.FC = () => {
           <h1 className="text-4xl md:text-6xl font-serif font-bold text-white mb-4 drop-shadow-xl">
             Templo Digital
           </h1>
-          <p className="text-xl text-purple-200 max-w-2xl mx-auto font-light">
+          <p className="text-xl text-purple-200 max-w-2xl mx-auto font-light mb-8">
             Ferramentas espirituais autônomas guiadas por inteligência ancestral para iluminar seu caminho agora mesmo.
           </p>
+          <TrustBadges />
        </div>
 
-       <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+       <div className="container mx-auto px-6 max-w-6xl pb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
              
              {/* 1. Oráculo */}
              <ServiceCard 
@@ -73,7 +77,11 @@ const ServicesHub: React.FC = () => {
              />
 
           </div>
+
+          <PricingComparison />
        </div>
+
+       <FooterCTA />
     </div>
   );
 };

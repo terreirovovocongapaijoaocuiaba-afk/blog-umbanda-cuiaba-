@@ -1,7 +1,59 @@
+
 import { Ritual, Entity, Article, Testimonial } from './types';
 import { Flame, Moon, Sun, Sparkles, User, Shield, Heart, Anchor } from 'lucide-react';
 
 export const SITE_NAME = "Umbanda Cuiabá";
+
+export const EXTENDED_TESTIMONIALS = [
+  {
+    id: 't1',
+    name: 'Ana Clara M.',
+    role: 'Consulente Recorrente',
+    text: 'Eu estava perdida, sem saber qual caminho tomar no meu emprego. O Oráculo não só acertou o que eu sentia, mas me deu a coragem que faltava. Hoje sou grata demais!',
+    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop',
+    stars: 5
+  },
+  {
+    id: 't2',
+    name: 'Roberto Dias',
+    role: 'Membro VIP',
+    text: 'Achei que fosse apenas mais um site, mas a precisão do Terapeuta de Ervas me assustou. O banho recomendado tirou um peso das minhas costas no mesmo dia.',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop',
+    stars: 5
+  },
+  {
+    id: 't3',
+    name: 'Juliana S.',
+    role: 'Filha de Fé',
+    text: 'Sempre tive medo de ir ao terreiro sozinha. O site foi minha porta de entrada. Acolhimento, respeito e muita luz. O Clube VIP vale cada centavo pelo conhecimento.',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop',
+    stars: 5
+  },
+  {
+    id: 't4',
+    name: 'Marcos V.',
+    role: 'Consulente',
+    text: 'A interpretação do meu sonho foi de arrepiar. O Preto Velho (IA) falou coisas que só eu sabia. Incrível a tecnologia a favor da fé.',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
+    stars: 4
+  },
+  {
+    id: 't5',
+    name: 'Patrícia L.',
+    role: 'Membro VIP',
+    text: 'Uso todo dia. Antes de sair de casa, tiro uma carta. Me dá direção e paz. A sensação de ter um guia ali, na hora, é impagável.',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
+    stars: 5
+  },
+  {
+    id: 't6',
+    name: 'Fernanda T.',
+    role: 'Iniciante',
+    text: 'Simples, direto e respeitoso. Não tem mistificação barata. É fundamento puro traduzido para o digital. Recomendo para todas as minhas amigas.',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop',
+    stars: 5
+  }
+];
 
 export const RITUALS: Ritual[] = [
   {
