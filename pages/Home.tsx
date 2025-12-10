@@ -48,10 +48,10 @@ const Home: React.FC = () => {
       <Hero />
       
       {/* Introduction */}
-      <section className="py-20 bg-umbanda-black border-b border-stone-900">
+      <section className="py-20 bg-white dark:bg-umbanda-black border-b border-stone-200 dark:border-stone-900 transition-colors duration-300">
         <div className="container mx-auto px-6 text-center">
           <span className="text-umbanda-gold text-4xl mb-4 block">❝</span>
-          <p className="text-xl md:text-3xl font-serif text-stone-200 leading-relaxed max-w-4xl mx-auto italic">
+          <p className="text-xl md:text-3xl font-serif text-stone-800 dark:text-stone-200 leading-relaxed max-w-4xl mx-auto italic">
             "A Umbanda é paz e amor, é um mundo cheio de luz. É a força que nos dá vida, e a grandeza que nos conduz."
           </p>
           <div className="mt-8 w-24 h-1 bg-umbanda-red mx-auto rounded-full"></div>
@@ -59,7 +59,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Rituals Highlight */}
-      <section className="py-24 bg-stone-950">
+      <section className="py-24 bg-stone-50 dark:bg-stone-950 transition-colors duration-300">
         <div className="container mx-auto px-6">
           <SectionHeading subtitle="Práticas Sagradas" title="Rituais & Firmezas" />
           
@@ -71,14 +71,14 @@ const Home: React.FC = () => {
                 <RitualCard key={ritual.id} ritual={ritual} />
               ))
             ) : (
-               <div className="col-span-3 text-center text-stone-500 py-12 border border-stone-800 rounded-lg bg-stone-900/50">
+               <div className="col-span-3 text-center text-stone-500 py-12 border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-900/50">
                   Novos rituais serão publicados em breve.
                </div>
             )}
           </div>
 
           <div className="mt-12 text-center">
-            <Link to="/rituais" className="inline-flex items-center text-umbanda-gold hover:text-white font-bold tracking-wider uppercase border-b-2 border-umbanda-gold hover:border-white pb-1 transition-all">
+            <Link to="/rituais" className="inline-flex items-center text-umbanda-gold hover:text-umbanda-red dark:hover:text-white font-bold tracking-wider uppercase border-b-2 border-umbanda-gold hover:border-umbanda-red dark:hover:border-white pb-1 transition-all">
               Ver todos os rituais <ArrowRight className="ml-2 w-4 h-4" />
             </Link>
           </div>
@@ -89,7 +89,7 @@ const Home: React.FC = () => {
       <EntitySection />
 
       {/* Testimonials - REAL DATA */}
-      <section className="py-24 bg-gradient-to-b from-stone-900 to-stone-950">
+      <section className="py-24 bg-white dark:bg-gradient-to-b dark:from-stone-900 dark:to-stone-950 transition-colors duration-300">
         <div className="container mx-auto px-6">
           <SectionHeading subtitle="A Voz da Comunidade" title="Depoimentos Reais" centered />
           
@@ -98,25 +98,25 @@ const Home: React.FC = () => {
                 <p className="text-center w-full text-stone-500">Carregando depoimentos...</p>
             ) : testimonials.length > 0 ? (
                 testimonials.map(t => (
-                <div key={t.id} className="bg-stone-800/50 p-8 rounded-2xl border border-stone-700 relative hover:border-umbanda-gold/30 transition-colors">
-                    <Quote className="absolute top-6 right-6 text-stone-700 w-8 h-8 opacity-50" />
+                <div key={t.id} className="bg-stone-50 dark:bg-stone-800/50 p-8 rounded-2xl border border-stone-200 dark:border-stone-700 relative hover:border-umbanda-gold/30 transition-colors shadow-sm dark:shadow-none">
+                    <Quote className="absolute top-6 right-6 text-stone-300 dark:text-stone-700 w-8 h-8 opacity-50" />
                     <div className="flex items-center space-x-4 mb-6">
                     <img src={t.avatarUrl} alt={t.name} className="w-12 h-12 rounded-full border-2 border-umbanda-gold object-cover" />
                     <div>
-                        <h4 className="text-white font-bold">{t.name}</h4>
-                        <span className="text-stone-400 text-xs uppercase font-bold tracking-wider">{t.role}</span>
+                        <h4 className="text-stone-900 dark:text-white font-bold">{t.name}</h4>
+                        <span className="text-stone-500 dark:text-stone-400 text-xs uppercase font-bold tracking-wider">{t.role}</span>
                     </div>
                     </div>
                     <div className="flex text-umbanda-gold mb-4">
                     {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
                     </div>
-                    <p className="text-stone-300 text-sm leading-relaxed italic">
+                    <p className="text-stone-600 dark:text-stone-300 text-sm leading-relaxed italic">
                     "{t.text}"
                     </p>
                 </div>
                 ))
             ) : (
-                <div className="col-span-3 text-center py-12 border border-dashed border-stone-800 rounded-xl text-stone-500">
+                <div className="col-span-3 text-center py-12 border border-dashed border-stone-300 dark:border-stone-800 rounded-xl text-stone-500">
                     <p>Nenhum depoimento cadastrado ainda.</p>
                     <p className="text-xs mt-2">Adicione depoimentos reais através do Painel Administrativo.</p>
                 </div>
@@ -126,7 +126,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Blog Preview */}
-      <section className="py-24 bg-stone-950">
+      <section className="py-24 bg-stone-50 dark:bg-stone-950 transition-colors duration-300">
         <div className="container mx-auto px-6">
           <SectionHeading subtitle="Conhecimento" title="Artigos Recentes" />
           
@@ -136,7 +136,7 @@ const Home: React.FC = () => {
             ) : featuredArticles.length > 0 ? (
               featuredArticles.map(article => (
                 <Link to={`/artigos/${article.id}`} key={article.id} className="group cursor-pointer block">
-                  <div className="overflow-hidden rounded-lg mb-4 h-64 border border-stone-800 relative">
+                  <div className="overflow-hidden rounded-lg mb-4 h-64 border border-stone-200 dark:border-stone-800 relative shadow-sm">
                     <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                   </div>
@@ -145,16 +145,16 @@ const Home: React.FC = () => {
                     <span>•</span>
                     <span>{article.tags?.[0] || 'Umbanda'}</span>
                   </div>
-                  <h3 className="text-xl font-serif font-bold text-white mb-2 group-hover:text-umbanda-red transition-colors line-clamp-2">
+                  <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-white mb-2 group-hover:text-umbanda-red transition-colors line-clamp-2">
                     {article.title}
                   </h3>
-                  <p className="text-stone-400 text-sm line-clamp-2">
+                  <p className="text-stone-600 dark:text-stone-400 text-sm line-clamp-2">
                     {article.excerpt}
                   </p>
                 </Link>
               ))
             ) : (
-              <div className="col-span-3 text-center text-stone-500 py-12 border border-stone-800 rounded-lg bg-stone-900/50">
+              <div className="col-span-3 text-center text-stone-500 py-12 border border-stone-200 dark:border-stone-800 rounded-lg bg-white dark:bg-stone-900/50">
                   Em breve novos artigos.
                </div>
             )}

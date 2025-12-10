@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock } from 'lucide-react';
+import { Menu, X, Flame, Instagram, Facebook, Youtube, Lock, Sun, Moon } from 'lucide-react';
 import { SITE_NAME } from '../constants';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -9,6 +9,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [socialLinks, setSocialLinks] = useState<any>({});
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const location = useLocation();
 
   useEffect(() => {
@@ -22,6 +23,30 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setIsMobileMenuOpen(false);
   }, [location]);
 
+  // Theme Logic
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else if (systemPrefersDark) {
+      setTheme('dark');
+      document.documentElement.classList.add('dark');
+    } else {
+      setTheme('light');
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
   useEffect(() => {
     const fetchSocial = async () => {
       try {
@@ -33,28 +58,40 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-umbanda-black text-umbanda-white font-sans selection:bg-umbanda-red selection:text-white">
+    <div className="min-h-screen bg-stone-50 dark:bg-umbanda-black text-stone-900 dark:text-umbanda-white font-sans selection:bg-umbanda-red selection:text-white transition-colors duration-300">
       {/* Navigation */}
       <nav 
         className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled ? 'bg-umbanda-black/95 shadow-lg shadow-umbanda-red/10 py-3' : 'bg-transparent py-6'
+          isScrolled 
+            ? 'bg-white/95 dark:bg-umbanda-black/95 shadow-lg shadow-stone-200 dark:shadow-umbanda-red/10 py-3 text-stone-900 dark:text-white' 
+            : 'bg-transparent py-6 text-white' 
+          /* Note: When transparent (top), text is always white because of Hero image. When scrolled, it adapts. */
         }`}
       >
         <div className="container mx-auto px-6 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2 group">
             <Flame className="w-8 h-8 text-umbanda-gold group-hover:text-umbanda-redBright transition-colors duration-300" />
-            <span className="text-2xl font-serif font-bold text-umbanda-offwhite tracking-wider">
+            <span className={`text-2xl font-serif font-bold tracking-wider ${!isScrolled ? 'text-white' : 'text-stone-900 dark:text-umbanda-offwhite'}`}>
               {SITE_NAME.toUpperCase()}
             </span>
           </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <NavLink to="/">Início</NavLink>
-            <NavLink to="/rituais">Rituais</NavLink>
-            <NavLink to="/artigos">Artigos</NavLink>
-            <NavLink to="/sobre">Sobre a Casa</NavLink>
-            <NavLink to="/contato">Contato</NavLink>
+            <NavLink to="/" isScrolled={isScrolled}>Início</NavLink>
+            <NavLink to="/rituais" isScrolled={isScrolled}>Rituais</NavLink>
+            <NavLink to="/artigos" isScrolled={isScrolled}>Artigos</NavLink>
+            <NavLink to="/sobre" isScrolled={isScrolled}>Sobre a Casa</NavLink>
+            <NavLink to="/contato" isScrolled={isScrolled}>Contato</NavLink>
+            
+            <button 
+              onClick={toggleTheme} 
+              className={`p-2 rounded-full transition-colors ${isScrolled ? 'hover:bg-stone-200 dark:hover:bg-stone-800' : 'hover:bg-white/20'}`}
+              title={theme === 'dark' ? 'Mudar para Claro' : 'Mudar para Escuro'}
+            >
+              {theme === 'dark' ? <Sun size={20} className={isScrolled ? 'text-stone-900 dark:text-white' : 'text-white'} /> : <Moon size={20} className={isScrolled ? 'text-stone-900 dark:text-white' : 'text-white'} />}
+            </button>
+
             <Link 
               to="/vip" 
               className="px-6 py-2 bg-gradient-to-r from-umbanda-red to-red-800 text-white font-bold rounded-full border border-umbanda-gold/30 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all transform hover:-translate-y-0.5 text-sm"
@@ -64,17 +101,25 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button 
-            className="md:hidden text-umbanda-gold hover:text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          <div className="md:hidden flex items-center gap-4">
+            <button 
+                onClick={toggleTheme} 
+                className="text-umbanda-gold hover:text-white"
+            >
+                {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
+            </button>
+            <button 
+              className="text-umbanda-gold hover:text-white"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-umbanda-black border-t border-umbanda-red/30 shadow-2xl flex flex-col p-6 space-y-4 animate-fadeIn">
+          <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-umbanda-black border-t border-stone-200 dark:border-umbanda-red/30 shadow-2xl flex flex-col p-6 space-y-4 animate-fadeIn">
             <MobileNavLink to="/">Início</MobileNavLink>
             <MobileNavLink to="/rituais">Rituais</MobileNavLink>
             <MobileNavLink to="/artigos">Artigos</MobileNavLink>
@@ -96,7 +141,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-stone-950 border-t-4 border-umbanda-red pt-16 pb-8 relative overflow-hidden">
+      <footer className="bg-stone-100 dark:bg-stone-950 border-t-4 border-umbanda-red pt-16 pb-8 relative overflow-hidden transition-colors duration-300">
         {/* Decorative Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-umbanda-red/5 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -105,9 +150,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Flame className="w-6 h-6 text-umbanda-gold" />
-                <span className="text-xl font-serif font-bold text-white">{SITE_NAME}</span>
+                <span className="text-xl font-serif font-bold text-stone-900 dark:text-white">{SITE_NAME}</span>
               </div>
-              <p className="text-stone-400 text-sm leading-relaxed">
+              <p className="text-stone-600 dark:text-stone-400 text-sm leading-relaxed">
                 Um portal de luz, conhecimento e tradição. Levando o axé dos Orixás e Guias para o seu lar. Respeito, caridade e evolução.
               </p>
               <div className="flex space-x-4 pt-2">
@@ -119,7 +164,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             <div>
               <h4 className="text-umbanda-gold font-serif font-bold mb-4">Navegação</h4>
-              <ul className="space-y-2 text-sm text-stone-300">
+              <ul className="space-y-2 text-sm text-stone-600 dark:text-stone-300">
                 <li><Link to="/rituais" className="hover:text-umbanda-redBright transition-colors">Rituais & Firmezas</Link></li>
                 <li><Link to="/artigos" className="hover:text-umbanda-redBright transition-colors">Blog Espiritual</Link></li>
                 <li><Link to="/sobre" className="hover:text-umbanda-redBright transition-colors">Nossa História</Link></li>
@@ -129,7 +174,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             <div>
               <h4 className="text-umbanda-gold font-serif font-bold mb-4">Atendimento</h4>
-              <ul className="space-y-2 text-sm text-stone-300">
+              <ul className="space-y-2 text-sm text-stone-600 dark:text-stone-300">
                 <li>Segunda a Sexta: 19h às 22h</li>
                 <li>Sábado: Giras Abertas (18h)</li>
                 <li>Domingo: Fechado</li>
@@ -142,15 +187,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <p className="text-xs text-stone-500 mb-4">
                 O conteúdo deste site tem caráter informativo e espiritual. Não substituímos tratamento médico ou psicológico.
               </p>
-              <Link to="/politica" className="text-xs text-stone-400 hover:text-white underline">Política de Privacidade</Link>
+              <Link to="/politica" className="text-xs text-stone-500 hover:text-umbanda-gold underline">Política de Privacidade</Link>
             </div>
           </div>
 
-          <div className="border-t border-stone-800 pt-8 flex flex-col md:flex-row justify-between items-center text-center md:text-left">
-            <p className="text-stone-600 text-sm">
+          <div className="border-t border-stone-200 dark:border-stone-800 pt-8 flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+            <p className="text-stone-600 dark:text-stone-600 text-sm">
               &copy; {new Date().getFullYear()} {SITE_NAME}. Saravá Umbanda. Todos os direitos reservados.
             </p>
-            <Link to="/admin/login" className="mt-4 md:mt-0 flex items-center gap-2 text-xs text-stone-700 hover:text-umbanda-gold transition-colors uppercase tracking-wider font-bold">
+            <Link to="/admin/login" className="mt-4 md:mt-0 flex items-center gap-2 text-xs text-stone-500 hover:text-umbanda-gold transition-colors uppercase tracking-wider font-bold">
               <Lock size={14} />
               Área Administrativa
             </Link>
@@ -161,23 +206,25 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
+const NavLink: React.FC<{ to: string; children: React.ReactNode; isScrolled: boolean }> = ({ to, children, isScrolled }) => (
   <Link 
     to={to} 
-    className="relative text-sm font-medium tracking-wide text-stone-300 hover:text-umbanda-gold transition-colors duration-300 after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-umbanda-gold after:left-0 after:-bottom-1 after:transition-all hover:after:w-full"
+    className={`relative text-sm font-medium tracking-wide transition-colors duration-300 after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-umbanda-gold after:left-0 after:-bottom-1 after:transition-all hover:after:w-full
+      ${isScrolled ? 'text-stone-600 hover:text-umbanda-red dark:text-stone-300 dark:hover:text-umbanda-gold' : 'text-stone-200 hover:text-white'}
+    `}
   >
     {children}
   </Link>
 );
 
 const MobileNavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
-  <Link to={to} className="text-lg font-serif text-stone-200 hover:text-umbanda-red border-b border-stone-800 pb-2">
+  <Link to={to} className="text-lg font-serif text-stone-800 dark:text-stone-200 hover:text-umbanda-red border-b border-stone-200 dark:border-stone-800 pb-2">
     {children}
   </Link>
 );
 
 const SocialIcon: React.FC<{ icon: React.ReactNode, href: string }> = ({ icon, href }) => (
-  <a href={href} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-stone-900 flex items-center justify-center text-stone-400 hover:bg-umbanda-red hover:text-white transition-all duration-300">
+  <a href={href} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 flex items-center justify-center text-stone-500 hover:bg-umbanda-red hover:text-white hover:border-umbanda-red transition-all duration-300">
     {icon}
   </a>
 );
